@@ -1,0 +1,9 @@
+{
+  "name": "marketplace-bff",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
+
