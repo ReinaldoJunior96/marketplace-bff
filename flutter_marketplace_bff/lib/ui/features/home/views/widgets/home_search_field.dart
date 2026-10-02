@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class HomeSearchField extends StatelessWidget {
   const HomeSearchField({super.key, required this.onChanged});
@@ -12,7 +13,10 @@ class HomeSearchField extends StatelessWidget {
       textInputAction: TextInputAction.search,
       decoration: const InputDecoration(
         hintText: 'Buscar produtos',
-        prefixIcon: Icon(Icons.search),
+        prefixIcon: Padding(
+          padding: EdgeInsets.all(14),
+          child: FaIcon(FontAwesomeIcons.magnifyingGlass, size: 18),
+        ),
       ),
     );
   }

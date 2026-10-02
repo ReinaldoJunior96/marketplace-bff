@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../../../../domain/models/product.dart';
 import '../../../../core/formatters/currency_formatter.dart';
@@ -78,7 +79,7 @@ class _ImageFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: Icon(Icons.image_outlined, size: 40, color: AppColors.mocha),
+      child: FaIcon(FontAwesomeIcons.image, size: 36, color: AppColors.mocha),
     );
   }
 }

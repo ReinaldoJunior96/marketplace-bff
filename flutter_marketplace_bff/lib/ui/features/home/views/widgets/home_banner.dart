@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/widgets/illustration.dart';
 
 /// Destaque editorial no topo da vitrine.
 class HomeBanner extends StatelessWidget {
@@ -29,40 +30,52 @@ class HomeBanner extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: AppSpacing.xs,
+              child: LayoutBuilder(
+                builder: (context, constraints) => Row(
+                  children: [
+                    Expanded(child: _buildCopy(textTheme)),
+                    const SizedBox(width: AppSpacing.md),
+                    SizedBox(
+                      width: (constraints.maxWidth * 0.38).clamp(110, 220),
+                      child: const Illustration(AppIllustration.browsing),
                     ),
-                    decoration: BoxDecoration(
-                      color: AppColors.linen,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                    ),
-                    child: Text(
-                      'Novidades da semana',
-                      style: textTheme.labelMedium?.copyWith(
-                        color: AppColors.terracotta,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 260),
-                    child: Text(
-                      'Tecnologia que combina com o seu cantinho',
-                      style: textTheme.headlineSmall,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCopy(TextTheme textTheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.linen,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          ),
+          child: Text(
+            'Novidades da semana',
+            style: textTheme.labelMedium?.copyWith(
+              color: AppColors.terracotta,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Text(
+          'Tecnologia que combina com o seu cantinho',
+          style: textTheme.headlineSmall,
+        ),
+      ],
     );
   }
 }

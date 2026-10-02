@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../../core/animations/circular_reveal_route.dart';
 import '../../../core/theme/app_colors.dart';
@@ -201,10 +202,12 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.spa_rounded,
-                  size: 48,
-                  color: Colors.white,
+                child: const Center(
+                  child: FaIcon(
+                    FontAwesomeIcons.bagShopping,
+                    size: 42,
+                    color: AppColors.cream,
+                  ),
                 ),
               ),
             ),

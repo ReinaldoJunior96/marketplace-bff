@@ -2,19 +2,20 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
+import 'illustration.dart';
 
-/// Mensagem centralizada para estados de erro e vazio.
+/// Mensagem centralizada com ilustração para estados de erro e vazio.
 class StateMessage extends StatelessWidget {
   const StateMessage({
     super.key,
-    required this.icon,
+    required this.illustration,
     required this.title,
     required this.message,
     this.actionLabel,
     this.onAction,
   });
 
-  final IconData icon;
+  final AppIllustration illustration;
   final String title;
   final String message;
   final String? actionLabel;
@@ -32,20 +33,11 @@ class StateMessage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                decoration: const BoxDecoration(
-                  color: AppColors.peach,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 32, color: AppColors.terracotta),
-              ),
-              const SizedBox(height: AppSpacing.lg),
+              Illustration(illustration, height: 150),
+              const SizedBox(height: AppSpacing.xl),
               Text(
                 title,
-                style: textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: textTheme.titleLarge,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.sm),

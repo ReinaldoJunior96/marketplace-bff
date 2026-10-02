@@ -1,12 +1,14 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../../../domain/models/product.dart';
 import '../../../core/animations/app_motion.dart';
 import '../../../core/animations/fade_slide_in.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/state_message.dart';
 import '../view_models/home_view_model.dart';
 import 'widgets/home_banner.dart';
@@ -112,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
       HomeFailure(:final message) => [
         _StateSliver(
           child: StateMessage(
-            icon: Icons.cloud_off_outlined,
+            illustration: AppIllustration.connectionLost,
             title: 'Não conseguimos carregar a vitrine',
             message: message,
             actionLabel: 'Tentar de novo',
@@ -131,12 +133,12 @@ class _HomeScreenState extends State<HomeScreen> {
         _StateSliver(
           child: query.isEmpty
               ? const StateMessage(
-                  icon: Icons.storefront_outlined,
+                  illustration: AppIllustration.emptyOrders,
                   title: 'Vitrine vazia por enquanto',
                   message: 'Logo chegam novidades por aqui.',
                 )
               : StateMessage(
-                  icon: Icons.search_off,
+                  illustration: AppIllustration.notFound,
                   title: 'Nada encontrado',
                   message: 'Nenhum produto corresponde a "$query".',
                 ),
@@ -208,7 +210,11 @@ class _Header extends StatelessWidget {
                 color: AppColors.terracotta,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.spa_rounded, color: Colors.white),
+              child: const FaIcon(
+                FontAwesomeIcons.bagShopping,
+                size: 20,
+                color: AppColors.cream,
+              ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
