@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import { CircuitBreakerService } from '../common/circuit-breaker.service.js';
 import { CorrelationIdService } from '../common/correlation-id.service.js';
 import type { DownstreamConfigService } from '../common/downstream-config.service.js';
 import { DownstreamHttpClient } from '../common/downstream-http.client.js';
@@ -6,17 +7,23 @@ import { DownstreamServiceUnavailableException } from '../common/downstream-serv
 import { CatalogGateway } from './catalog.gateway.js';
 
 describe('CatalogGateway', () => {
-  const createGateway = () =>
-    new CatalogGateway(
+  const createGateway = () => {
+    const config = {
+      timeoutMs: 2_000,
+      retryCount: 2,
+      retryBackoffMs: 0,
+      circuitFailureThreshold: 3,
+      circuitResetTimeoutMs: 5_000,
+    } as DownstreamConfigService;
+    const correlationIds = new CorrelationIdService();
+    return new CatalogGateway(
       new DownstreamHttpClient(
-        {
-          timeoutMs: 2_000,
-          retryCount: 2,
-          retryBackoffMs: 0,
-        } as DownstreamConfigService,
-        new CorrelationIdService(),
+        config,
+        correlationIds,
+        new CircuitBreakerService(config, correlationIds),
       ),
     );
+  };
 
   beforeEach(() => {
     process.env.CATALOG_SERVICE_URL = 'http://catalog-service:3003';

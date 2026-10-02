@@ -1,3 +1,4 @@
+import { CircuitBreakerService } from '../common/circuit-breaker.service.js';
 import { CorrelationIdService } from '../common/correlation-id.service.js';
 import type { DownstreamConfigService } from '../common/downstream-config.service.js';
 import { DownstreamHttpClient } from '../common/downstream-http.client.js';
@@ -5,17 +6,23 @@ import { DownstreamServiceUnavailableException } from '../common/downstream-serv
 import { OrdersGateway } from './orders.gateway.js';
 
 describe('OrdersGateway', () => {
-  const createGateway = () =>
-    new OrdersGateway(
+  const createGateway = () => {
+    const config = {
+      timeoutMs: 2_000,
+      retryCount: 2,
+      retryBackoffMs: 0,
+      circuitFailureThreshold: 3,
+      circuitResetTimeoutMs: 5_000,
+    } as DownstreamConfigService;
+    const correlationIds = new CorrelationIdService();
+    return new OrdersGateway(
       new DownstreamHttpClient(
-        {
-          timeoutMs: 2_000,
-          retryCount: 2,
-          retryBackoffMs: 0,
-        } as DownstreamConfigService,
-        new CorrelationIdService(),
+        config,
+        correlationIds,
+        new CircuitBreakerService(config, correlationIds),
       ),
     );
+  };
 
   beforeEach(() => {
     process.env.ORDER_SERVICE_URL = 'http://order-service:3001/';

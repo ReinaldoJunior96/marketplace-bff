@@ -3,6 +3,8 @@ import { Injectable } from '@nestjs/common';
 const DEFAULT_DOWNSTREAM_TIMEOUT_MS = 2_000;
 const DEFAULT_DOWNSTREAM_RETRY_COUNT = 2;
 const DEFAULT_DOWNSTREAM_RETRY_BACKOFF_MS = 100;
+const DEFAULT_CIRCUIT_FAILURE_THRESHOLD = 3;
+const DEFAULT_CIRCUIT_RESET_TIMEOUT_MS = 5_000;
 
 @Injectable()
 export class DownstreamConfigService {
@@ -20,6 +22,16 @@ export class DownstreamConfigService {
     process.env.DOWNSTREAM_RETRY_BACKOFF_MS,
     DEFAULT_DOWNSTREAM_RETRY_BACKOFF_MS,
     'DOWNSTREAM_RETRY_BACKOFF_MS',
+  );
+  readonly circuitFailureThreshold = parsePositiveInteger(
+    process.env.CIRCUIT_FAILURE_THRESHOLD,
+    DEFAULT_CIRCUIT_FAILURE_THRESHOLD,
+    'CIRCUIT_FAILURE_THRESHOLD',
+  );
+  readonly circuitResetTimeoutMs = parsePositiveInteger(
+    process.env.CIRCUIT_RESET_TIMEOUT_MS,
+    DEFAULT_CIRCUIT_RESET_TIMEOUT_MS,
+    'CIRCUIT_RESET_TIMEOUT_MS',
   );
 }
 

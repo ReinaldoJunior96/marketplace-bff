@@ -53,6 +53,8 @@ Chamadas HTTP do BFF para Catalog e Order Service usam o timeout central `DOWNST
 
 GETs downstream repetem apenas falhas transitórias (timeout, conexão, 502, 503 e 504), conforme `DOWNSTREAM_RETRY_COUNT` e `DOWNSTREAM_RETRY_BACKOFF_MS`. Retry ajuda em falhas breves, mas aumenta latência e pode pressionar ainda mais um serviço indisponível. A criação de pedidos não é repetida automaticamente: sem uma chave de idempotência HTTP, repetir `POST /orders` poderia criar pedidos duplicados.
 
+Cada dependência HTTP também possui circuit breaker com estados `CLOSED`, `OPEN` e `HALF_OPEN`, configurado por `CIRCUIT_FAILURE_THRESHOLD` e `CIRCUIT_RESET_TIMEOUT_MS`. Ele reduz pressão sobre serviços indisponíveis, mas pode rejeitar chamadas por uma curta janela mesmo quando a dependência acabou de se recuperar.
+
 Para a tela "Meus pedidos", Web e Mobile consultam respectivamente `GET /api/web/orders` e `GET /api/mobile/orders`. A Web recebe os pedidos completos; o Mobile recebe apenas `id`, `status`, `itemsCount` e `createdAt`.
 
 O armazenamento é mantido em memória para preservar o foco atual na arquitetura de comunicação. Os pedidos são perdidos quando o container reinicia. A persistência será tratada separadamente quando fizer sentido para o objetivo do projeto.

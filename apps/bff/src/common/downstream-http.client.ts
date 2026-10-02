@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { setTimeout as delay } from 'node:timers/promises';
+import { CircuitBreakerService } from './circuit-breaker.service.js';
 import { CorrelationIdService } from './correlation-id.service.js';
 import { DownstreamConfigService } from './downstream-config.service.js';
 import {
@@ -14,6 +15,7 @@ export class DownstreamHttpClient {
   constructor(
     private readonly config: DownstreamConfigService,
     private readonly correlationIds: CorrelationIdService,
+    private readonly circuitBreaker: CircuitBreakerService,
   ) {}
 
   async request(
@@ -22,25 +24,27 @@ export class DownstreamHttpClient {
     options?: RequestInit,
     policy: { retryable: boolean } = { retryable: false },
   ): Promise<Response> {
+    return this.circuitBreaker.execute(service, () =>
+      this.requestWithRetry(service, url, options, policy),
+    );
+  }
+
+  private async requestWithRetry(
+    service: DownstreamServiceName,
+    url: string,
+    options: RequestInit | undefined,
+    policy: { retryable: boolean },
+  ): Promise<Response> {
     const maxAttempts = policy.retryable ? this.config.retryCount + 1 : 1;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      let response: Response;
+
       try {
-        const response = await fetch(url, {
+        response = await fetch(url, {
           ...options,
           signal: AbortSignal.timeout(this.config.timeoutMs),
         });
-
-        if (isTransientStatus(response.status) && attempt < maxAttempts) {
-          await this.retryAfterFailure(
-            service,
-            attempt + 1,
-            `http_${response.status}`,
-          );
-          continue;
-        }
-
-        return response;
       } catch (error) {
         const reason = isTimeout(error) ? 'timeout' : 'connection_error';
         if (attempt < maxAttempts) {
@@ -57,6 +61,32 @@ export class DownstreamHttpClient {
         });
         throw new DownstreamServiceUnavailableException(service);
       }
+
+      if (isTransientStatus(response.status)) {
+        if (attempt < maxAttempts) {
+          await this.retryAfterFailure(
+            service,
+            attempt + 1,
+            `http_${response.status}`,
+          );
+          continue;
+        }
+
+        this.logger.warn({
+          service,
+          attempt,
+          correlationId: this.correlationIds.get() ?? 'unknown',
+          reason: `http_${response.status}`,
+          message: 'Downstream request failed',
+        });
+        throw new DownstreamServiceUnavailableException(service);
+      }
+
+      if (response.status >= 500) {
+        throw new DownstreamServiceUnavailableException(service);
+      }
+
+      return response;
     }
 
     throw new DownstreamServiceUnavailableException(service);

@@ -1,10 +1,21 @@
 import { Logger } from '@nestjs/common';
+import { CircuitBreakerService } from './circuit-breaker.service.js';
 import { CorrelationIdService } from './correlation-id.service.js';
 import type { DownstreamConfigService } from './downstream-config.service.js';
 import { DownstreamHttpClient } from './downstream-http.client.js';
 import { DownstreamServiceUnavailableException } from './downstream-service.exception.js';
 
 describe('DownstreamHttpClient', () => {
+  const createClient = (
+    config: DownstreamConfigService,
+    correlationIds: CorrelationIdService,
+  ) =>
+    new DownstreamHttpClient(
+      config,
+      correlationIds,
+      new CircuitBreakerService(config, correlationIds),
+    );
+
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
@@ -27,11 +38,13 @@ describe('DownstreamHttpClient', () => {
       }),
     );
     const correlationIds = new CorrelationIdService();
-    const client = new DownstreamHttpClient(
+    const client = createClient(
       {
         timeoutMs: 10,
         retryCount: 0,
         retryBackoffMs: 0,
+        circuitFailureThreshold: 3,
+        circuitResetTimeoutMs: 5_000,
       } as DownstreamConfigService,
       correlationIds,
     );
@@ -64,11 +77,13 @@ describe('DownstreamHttpClient', () => {
       .mockResolvedValueOnce(new Response('{}', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
     const correlationIds = new CorrelationIdService();
-    const client = new DownstreamHttpClient(
+    const client = createClient(
       {
         timeoutMs: 2_000,
         retryCount: 2,
         retryBackoffMs: 0,
+        circuitFailureThreshold: 3,
+        circuitResetTimeoutMs: 5_000,
       } as DownstreamConfigService,
       correlationIds,
     );
@@ -100,13 +115,16 @@ describe('DownstreamHttpClient', () => {
       .fn()
       .mockResolvedValue(new Response(null, { status: 404 }));
     vi.stubGlobal('fetch', fetchMock);
-    const client = new DownstreamHttpClient(
+    const correlationIds = new CorrelationIdService();
+    const client = createClient(
       {
         timeoutMs: 2_000,
         retryCount: 2,
         retryBackoffMs: 0,
+        circuitFailureThreshold: 3,
+        circuitResetTimeoutMs: 5_000,
       } as DownstreamConfigService,
-      new CorrelationIdService(),
+      correlationIds,
     );
 
     const response = await client.request(
