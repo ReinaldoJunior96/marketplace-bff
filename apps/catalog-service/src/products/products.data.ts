@@ -6,7 +6,8 @@ export const PRODUCTS: Product[] = [
     name: 'Teclado Mecânico',
     description: 'Teclado mecânico compacto com iluminação ajustável.',
     price: 399.9,
-    image: 'https://placehold.co/600x400/png?text=Teclado+Mecanico',
+    image:
+      'https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?w=800&h=600&fit=crop&q=80&fm=jpg',
     category: 'Periféricos',
     stock: 10,
   },
@@ -15,25 +16,30 @@ export const PRODUCTS: Product[] = [
     name: 'Mouse Sem Fio',
     description: 'Mouse ergonômico com conexão sem fio e bateria recarregável.',
     price: 189.9,
-    image: 'https://placehold.co/600x400/png?text=Mouse+Sem+Fio',
+    image:
+      'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=800&h=600&fit=crop&q=80&fm=jpg',
     category: 'Periféricos',
     stock: 18,
   },
   {
     id: 'product-003',
     name: 'Monitor 27 Polegadas',
-    description: 'Monitor IPS com resolução QHD e taxa de atualização de 144 Hz.',
+    description:
+      'Monitor IPS com resolução QHD e taxa de atualização de 144 Hz.',
     price: 1799.9,
-    image: 'https://placehold.co/600x400/png?text=Monitor+27',
+    image:
+      'https://images.unsplash.com/photo-1586210579191-33b45e38fa2c?w=800&h=600&fit=crop&q=80&fm=jpg',
     category: 'Monitores',
     stock: 7,
   },
   {
     id: 'product-004',
     name: 'Headset USB',
-    description: 'Headset com microfone removível e controle de volume integrado.',
+    description:
+      'Headset com microfone removível e controle de volume integrado.',
     price: 279.9,
-    image: 'https://placehold.co/600x400/png?text=Headset+USB',
+    image:
+      'https://images.unsplash.com/photo-1629429407756-4a7703614972?w=800&h=600&fit=crop&q=80&fm=jpg',
     category: 'Áudio',
     stock: 14,
   },
@@ -42,7 +48,8 @@ export const PRODUCTS: Product[] = [
     name: 'Webcam Full HD',
     description: 'Webcam 1080p com foco automático e microfone integrado.',
     price: 329.9,
-    image: 'https://placehold.co/600x400/png?text=Webcam+Full+HD',
+    image:
+      'https://images.unsplash.com/photo-1623949556303-b0d17d198863?w=800&h=600&fit=crop&q=80&fm=jpg',
     category: 'Acessórios',
     stock: 9,
   },
@@ -51,25 +58,30 @@ export const PRODUCTS: Product[] = [
     name: 'Hub USB-C',
     description: 'Hub compacto com HDMI, USB 3.0 e leitor de cartões.',
     price: 249.9,
-    image: 'https://placehold.co/600x400/png?text=Hub+USB-C',
+    image:
+      'https://images.unsplash.com/photo-1616578273518-450dd375759b?w=800&h=600&fit=crop&q=80&fm=jpg',
     category: 'Acessórios',
     stock: 21,
   },
   {
     id: 'product-007',
     name: 'SSD Externo 1 TB',
-    description: 'Armazenamento portátil com conexão USB-C e capacidade de 1 TB.',
+    description:
+      'Armazenamento portátil com conexão USB-C e capacidade de 1 TB.',
     price: 649.9,
-    image: 'https://placehold.co/600x400/png?text=SSD+Externo',
+    image:
+      'https://images.unsplash.com/photo-1518547606470-00ac2ae882af?w=800&h=600&fit=crop&q=80&fm=jpg',
     category: 'Armazenamento',
     stock: 11,
   },
   {
     id: 'product-008',
     name: 'Suporte para Notebook',
-    description: 'Suporte ajustável em alumínio para notebooks de até 16 polegadas.',
+    description:
+      'Suporte ajustável em madeira para notebooks de até 16 polegadas.',
     price: 159.9,
-    image: 'https://placehold.co/600x400/png?text=Suporte+Notebook',
+    image:
+      'https://images.unsplash.com/photo-1623177578688-ee67cfc19428?w=800&h=600&fit=crop&q=80&fm=jpg',
     category: 'Acessórios',
     stock: 25,
   },
