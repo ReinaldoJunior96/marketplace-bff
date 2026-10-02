@@ -17,6 +17,7 @@ import {
 import { NotificationService } from '../notifications/notification.service.js';
 import {
   MARKETPLACE_EVENTS_EXCHANGE,
+  NOTIFICATION_ORDER_EVENTS_DLQ,
   NOTIFICATION_ORDER_EVENTS_QUEUE,
   NOTIFICATION_ORDER_EVENTS_RETRY_QUEUE,
 } from './rabbitmq.constants.js';
@@ -68,6 +69,9 @@ export class RabbitMqConsumer implements OnModuleInit, OnModuleDestroy {
         'x-dead-letter-routing-key': NOTIFICATION_ORDER_EVENTS_QUEUE,
       },
     });
+    await this.channel.assertQueue(NOTIFICATION_ORDER_EVENTS_DLQ, {
+      durable: true,
+    });
     await this.channel.bindQueue(
       NOTIFICATION_ORDER_EVENTS_QUEUE,
       MARKETPLACE_EVENTS_EXCHANGE,
@@ -110,6 +114,10 @@ export class RabbitMqConsumer implements OnModuleInit, OnModuleDestroy {
         });
         channel.ack(message);
         return;
+      }
+
+      if (shouldSimulateFailure(event.eventId)) {
+        throw new Error('Simulated development failure');
       }
 
       this.logger.log({
@@ -169,10 +177,45 @@ export class RabbitMqConsumer implements OnModuleInit, OnModuleDestroy {
           message: 'Event scheduled for retry',
         });
       } else {
-        channel.nack(message, false, false);
+        channel.sendToQueue(
+          NOTIFICATION_ORDER_EVENTS_DLQ,
+          message.content,
+          failedMessageProperties(message, errorMessage),
+        );
+        await channel.waitForConfirms();
+        channel.ack(message);
+        this.logger.error({
+          service: 'notification-service',
+          eventId: event?.eventId ?? message.properties?.messageId,
+          eventType: event?.eventType ?? message.properties?.type,
+          correlationId:
+            event?.correlationId ?? message.properties?.correlationId,
+          attempt,
+          message: 'Event forwarded to dead letter queue',
+          queue: NOTIFICATION_ORDER_EVENTS_DLQ,
+        });
       }
     }
   }
+}
+
+function failedMessageProperties(message: ConsumeMessage, reason: string) {
+  return {
+    ...retryProperties(message, getRetryCount(message)),
+    headers: {
+      ...message.properties?.headers,
+      'x-failure-reason': reason,
+    },
+  };
+}
+
+function shouldSimulateFailure(eventId: string): boolean {
+  return (
+    process.env.NODE_ENV === 'development' &&
+    process.env.DEV_FAIL_EVENT_ID !== undefined &&
+    process.env.DEV_FAIL_EVENT_ID !== '' &&
+    process.env.DEV_FAIL_EVENT_ID === eventId
+  );
 }
 
 function getRetryCount(message: ConsumeMessage): number {

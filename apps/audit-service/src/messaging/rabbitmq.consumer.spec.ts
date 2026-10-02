@@ -79,13 +79,14 @@ describe('RabbitMqConsumer', () => {
     expect(nack).not.toHaveBeenCalled();
   });
 
-  it('rejects after the retry limit is exhausted', async () => {
+  it('forwards the original message to the DLQ after retries are exhausted', async () => {
     const store = vi.fn(() => {
       throw new Error('Storage failed');
     });
     const ack = vi.fn();
     const nack = vi.fn();
     const sendToQueue = vi.fn();
+    const waitForConfirms = vi.fn().mockResolvedValue(undefined);
     const consumer = new RabbitMqConsumer({ store } as unknown as AuditService);
     const message = createMessage(event, { 'x-retry-count': 2 });
 
@@ -93,11 +94,22 @@ describe('RabbitMqConsumer', () => {
       ack,
       nack,
       sendToQueue,
+      waitForConfirms,
     } as unknown as ConfirmChannel);
 
-    expect(sendToQueue).not.toHaveBeenCalled();
-    expect(ack).not.toHaveBeenCalled();
-    expect(nack).toHaveBeenCalledWith(message, false, false);
+    expect(sendToQueue).toHaveBeenCalledWith(
+      'audit.marketplace-events.dlq',
+      message.content,
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'x-retry-count': 2,
+          'x-failure-reason': 'Storage failed',
+        }),
+      }),
+    );
+    expect(waitForConfirms).toHaveBeenCalledOnce();
+    expect(ack).toHaveBeenCalledWith(message);
+    expect(nack).not.toHaveBeenCalled();
   });
 });
 

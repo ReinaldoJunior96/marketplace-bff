@@ -171,7 +171,9 @@ Um serviço pode ser consumer e producer ao mesmo tempo. Aqui, `order.created` �
 
 Ainda não há Outbox Pattern. Se a notificação for processada e a publicação de `notification.sent` falhar, existe uma janela de inconsistência. Idempotência, retry e Outbox serão tratados separadamente.
 
-Falhas de processamento passam por filas `.retry` com TTL antes de voltar à fila principal. `EVENT_RETRY_MAX_ATTEMPTS` limita as repetições e `EVENT_RETRY_DELAY_MS` evita busy-loop. O payload e os metadados originais são preservados, com `x-retry-count` indicando o progresso. Ao esgotar as tentativas, a mensagem ainda é rejeitada; a DLQ é tratada na etapa seguinte.
+Falhas de processamento passam por filas `.retry` com TTL antes de voltar à fila principal. `EVENT_RETRY_MAX_ATTEMPTS` limita as repetições e `EVENT_RETRY_DELAY_MS` evita busy-loop. O payload e os metadados originais são preservados, com `x-retry-count` indicando o progresso. Ao esgotar as tentativas, as mensagens seguem para `notification.order-events.dlq` ou `audit.marketplace-events.dlq`, visíveis no RabbitMQ Management.
+
+Para testar a DLQ com segurança, defina `NOTIFICATION_DEV_FAIL_EVENT_ID` ou `AUDIT_DEV_FAIL_EVENT_ID` com o `eventId` exato e recrie somente o serviço desejado. A falha simulada funciona exclusivamente com `NODE_ENV=development`; deixe essas variáveis vazias no uso normal.
 
 Notification Service e Audit Service ignoram eventos já processados pelo mesmo `eventId`, evitando repetir efeitos quando o RabbitMQ entrega uma mensagem novamente. O histórico de idempotência ainda fica somente em memória: reiniciar o container o apaga. Em produção, ele deve usar armazenamento durável e compartilhado, como banco ou Redis.
 

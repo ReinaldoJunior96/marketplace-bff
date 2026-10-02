@@ -48,6 +48,7 @@ services:
       RABBITMQ_URL: ${RABBITMQ_URL}
       EVENT_RETRY_MAX_ATTEMPTS: ${EVENT_RETRY_MAX_ATTEMPTS:-2}
       EVENT_RETRY_DELAY_MS: ${EVENT_RETRY_DELAY_MS:-1000}
+      DEV_FAIL_EVENT_ID: ${NOTIFICATION_DEV_FAIL_EVENT_ID:-}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -64,6 +65,7 @@ services:
       RABBITMQ_URL: ${RABBITMQ_URL}
       EVENT_RETRY_MAX_ATTEMPTS: ${EVENT_RETRY_MAX_ATTEMPTS:-2}
       EVENT_RETRY_DELAY_MS: ${EVENT_RETRY_DELAY_MS:-1000}
+      DEV_FAIL_EVENT_ID: ${AUDIT_DEV_FAIL_EVENT_ID:-}
     ports:
       - "3002:3002"
     depends_on:

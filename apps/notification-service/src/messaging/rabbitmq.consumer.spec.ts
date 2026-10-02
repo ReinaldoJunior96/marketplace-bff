@@ -144,13 +144,14 @@ describe('RabbitMqConsumer', () => {
     expect(nack).not.toHaveBeenCalled();
   });
 
-  it('rejects after the retry limit is exhausted', async () => {
+  it('forwards the original message to the DLQ after retries are exhausted', async () => {
     const sendOrderCreated = vi.fn(() => {
       throw new Error('Notification failed');
     });
     const ack = vi.fn();
     const nack = vi.fn();
     const sendToQueue = vi.fn();
+    const waitForConfirms = vi.fn().mockResolvedValue(undefined);
     const consumer = new RabbitMqConsumer(
       { sendOrderCreated } as unknown as NotificationService,
       { publishNotificationSent: vi.fn() } as unknown as RabbitMqPublisher,
@@ -161,11 +162,58 @@ describe('RabbitMqConsumer', () => {
       ack,
       nack,
       sendToQueue,
+      waitForConfirms,
     } as unknown as ConfirmChannel);
 
-    expect(sendToQueue).not.toHaveBeenCalled();
-    expect(ack).not.toHaveBeenCalled();
-    expect(nack).toHaveBeenCalledWith(message, false, false);
+    expect(sendToQueue).toHaveBeenCalledWith(
+      'notification.order-events.dlq',
+      message.content,
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'x-retry-count': 2,
+          'x-failure-reason': 'Notification failed',
+        }),
+      }),
+    );
+    expect(waitForConfirms).toHaveBeenCalledOnce();
+    expect(ack).toHaveBeenCalledWith(message);
+    expect(nack).not.toHaveBeenCalled();
+  });
+
+  it('enables failure simulation only for the exact event in development', async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousFailureId = process.env.DEV_FAIL_EVENT_ID;
+    process.env.NODE_ENV = 'development';
+    process.env.DEV_FAIL_EVENT_ID = event.eventId;
+
+    try {
+      const sendOrderCreated = vi.fn();
+      const sendToQueue = vi.fn();
+      const ack = vi.fn();
+      const consumer = new RabbitMqConsumer(
+        { sendOrderCreated } as unknown as NotificationService,
+        { publishNotificationSent: vi.fn() } as unknown as RabbitMqPublisher,
+      );
+      const message = createMessage(event);
+
+      await consumer.handleMessage(message, {
+        ack,
+        nack: vi.fn(),
+        sendToQueue,
+        waitForConfirms: vi.fn().mockResolvedValue(undefined),
+      } as unknown as ConfirmChannel);
+
+      expect(sendOrderCreated).not.toHaveBeenCalled();
+      expect(sendToQueue).toHaveBeenCalledWith(
+        'notification.order-events.retry',
+        message.content,
+        expect.any(Object),
+      );
+      expect(ack).toHaveBeenCalledWith(message);
+    } finally {
+      restoreEnvironment('NODE_ENV', previousNodeEnv);
+      restoreEnvironment('DEV_FAIL_EVENT_ID', previousFailureId);
+    }
   });
 });
 
@@ -201,4 +249,9 @@ function correlationId(payload: object): string | undefined {
   return 'correlationId' in payload && typeof payload.correlationId === 'string'
     ? payload.correlationId
     : undefined;
+}
+
+function restoreEnvironment(name: string, value: string | undefined): void {
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
 }
