@@ -1,6 +1,7 @@
 import '../../domain/models/product.dart';
 import '../models/mobile_home_api_model.dart';
 import '../services/bff_api_client.dart';
+import 'price_mapper.dart';
 
 /// Fonte única dos dados da home.
 class HomeRepository {
@@ -17,9 +18,7 @@ class HomeRepository {
     return Product(
       id: product.id,
       name: product.name,
-      // O BFF envia reais com casas decimais; convertemos para centavos
-      // arredondando para eliminar o erro de ponto flutuante (399.9 * 100).
-      priceInCents: (product.price * 100).round(),
+      priceInCents: reaisToCents(product.price),
       thumbnailUrl: product.thumbnail,
     );
   }

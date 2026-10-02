@@ -5,6 +5,9 @@ import 'package:flutter/foundation.dart';
 /// Em aparelho físico, aponte para o IP da máquina que roda o Docker:
 /// `flutter run --dart-define=BFF_BASE_URL=http://192.168.0.10:3000`
 abstract final class BffConfig {
+  /// Cliente fixo do app de demonstração (não há login).
+  static const demoCustomerId = 'customer-terrashop';
+
   static const _override = String.fromEnvironment('BFF_BASE_URL');
 
   static Uri get baseUrl {
