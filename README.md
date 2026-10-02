@@ -55,6 +55,8 @@ GETs downstream repetem apenas falhas transitórias (timeout, conexão, 502, 503
 
 Cada dependência HTTP também possui circuit breaker com estados `CLOSED`, `OPEN` e `HALF_OPEN`, configurado por `CIRCUIT_FAILURE_THRESHOLD` e `CIRCUIT_RESET_TIMEOUT_MS`. Ele reduz pressão sobre serviços indisponíveis, mas pode rejeitar chamadas por uma curta janela mesmo quando a dependência acabou de se recuperar.
 
+Fallbacks são opt-in e reservados a dependências opcionais. Catalog e Order Service continuam críticos: se falharem, o BFF retorna erro controlado e nunca inventa produtos ou pedidos. A infraestrutura de fallback está disponível para futuras composições opcionais, que poderão degradar explicitamente para uma resposta segura, como recomendações vazias.
+
 Para a tela "Meus pedidos", Web e Mobile consultam respectivamente `GET /api/web/orders` e `GET /api/mobile/orders`. A Web recebe os pedidos completos; o Mobile recebe apenas `id`, `status`, `itemsCount` e `createdAt`.
 
 O armazenamento é mantido em memória para preservar o foco atual na arquitetura de comunicação. Os pedidos são perdidos quando o container reinicia. A persistência será tratada separadamente quando fizer sentido para o objetivo do projeto.
