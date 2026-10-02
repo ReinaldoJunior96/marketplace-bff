@@ -4,6 +4,9 @@ import 'package:http/http.dart' as http;
 import 'app.dart';
 import 'config/bff_config.dart';
 import 'data/repositories/home_repository.dart';
+import 'data/repositories/notification_repository.dart';
+import 'data/repositories/order_repository.dart';
+import 'data/repositories/product_repository.dart';
 import 'data/services/bff_api_client.dart';
 import 'ui/core/theme/app_fonts.dart';
 
@@ -14,6 +17,20 @@ void main() {
     client: http.Client(),
     baseUrl: BffConfig.baseUrl,
   );
+  const customerId = BffConfig.demoCustomerId;
 
-  runApp(MarketplaceApp(homeRepository: HomeRepository(apiClient: apiClient)));
+  runApp(
+    MarketplaceApp(
+      homeRepository: HomeRepository(apiClient: apiClient),
+      productRepository: ProductRepository(apiClient: apiClient),
+      orderRepository: OrderRepository(
+        apiClient: apiClient,
+        customerId: customerId,
+      ),
+      notificationRepository: NotificationRepository(
+        apiClient: apiClient,
+        customerId: customerId,
+      ),
+    ),
+  );
 }

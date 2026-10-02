@@ -5,11 +5,15 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../../../domain/models/product.dart';
 import '../../../core/animations/app_motion.dart';
+import '../../../core/animations/app_page_route.dart';
 import '../../../core/animations/fade_slide_in.dart';
+import '../../../core/app_scope.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/state_message.dart';
+import '../../cart/views/cart_button.dart';
+import '../../product/views/product_detail_screen.dart';
 import '../view_models/home_view_model.dart';
 import 'widgets/home_banner.dart';
 import 'widgets/home_search_field.dart';
@@ -98,6 +102,26 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _openProduct(Product product) {
+    Navigator.of(context).push(
+      AppPageRoute<void>(builder: (_) => ProductDetailScreen(product: product)),
+    );
+  }
+
+  void _quickAdd(Product product) {
+    AppScope.of(context).cart.add(product);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.espresso,
+          duration: const Duration(seconds: 2),
+          content: Text('${product.name} foi para o carrinho'),
+        ),
+      );
+  }
+
   List<Widget> _buildContent(double gutter) {
     return switch (_viewModel.state) {
       HomeLoading() => [
@@ -169,6 +193,8 @@ class _HomeScreenState extends State<HomeScreen> {
             product: products[index],
             backgroundColor:
                 AppColors.pastels[index % AppColors.pastels.length],
+            onTap: () => _openProduct(products[index]),
+            onAdd: () => _quickAdd(products[index]),
           ),
         ),
       ),
@@ -231,6 +257,7 @@ class _Header extends StatelessWidget {
                 ],
               ),
             ),
+            const CartButton(),
           ],
         ),
         const SizedBox(height: AppSpacing.xl),

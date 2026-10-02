@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_marketplace_bff/data/services/bff_exception.dart';
 import 'package:flutter_marketplace_bff/domain/models/product.dart';
 import 'package:flutter_marketplace_bff/ui/core/animations/fade_slide_in.dart';
-import 'package:flutter_marketplace_bff/ui/core/theme/app_theme.dart';
 import 'package:flutter_marketplace_bff/ui/core/widgets/shimmer.dart';
 import 'package:flutter_marketplace_bff/ui/features/home/view_models/home_view_model.dart';
 import 'package:flutter_marketplace_bff/ui/features/home/views/home_screen.dart';
@@ -13,6 +12,7 @@ import 'package:flutter_marketplace_bff/ui/features/home/views/widgets/product_c
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../helpers/fake_home_repository.dart';
+import '../../../../helpers/test_app.dart';
 
 /// O `TextField` também tem um Scrollable; o primeiro é o da tela.
 Finder get _homeScrollable => find.byType(Scrollable).first;
@@ -35,10 +35,7 @@ void main() {
       addTearDown(tester.view.reset);
     }
     await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light,
-        home: HomeScreen(viewModel: viewModel),
-      ),
+      createTestDependencies().app(HomeScreen(viewModel: viewModel)),
     );
   }
 
