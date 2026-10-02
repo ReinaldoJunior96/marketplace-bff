@@ -1,0 +1,2 @@
+export const MARKETPLACE_EVENTS_EXCHANGE = 'marketplace.events';
+export const NOTIFICATION_ORDER_EVENTS_QUEUE = 'notification.order-events';

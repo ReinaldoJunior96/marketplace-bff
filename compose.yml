@@ -1,0 +1,94 @@
+services:
+  bff:
+    build:
+      context: .
+      dockerfile: apps/bff/Dockerfile
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      CATALOG_SERVICE_URL: ${CATALOG_SERVICE_URL:-http://catalog-service:3003}
+    ports:
+      - "3000:3000"
+    depends_on:
+      catalog-service:
+        condition: service_started
+    networks:
+      - marketplace-network
+
+  order-service:
+    build:
+      context: .
+      dockerfile: apps/order-service/Dockerfile
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      RABBITMQ_URL: ${RABBITMQ_URL}
+    ports:
+      - "3001:3001"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - marketplace-network
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: apps/notification-service/Dockerfile
+    environment:
+      NODE_ENV: development
+      RABBITMQ_URL: ${RABBITMQ_URL}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - marketplace-network
+
+  audit-service:
+    build:
+      context: .
+      dockerfile: apps/audit-service/Dockerfile
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      RABBITMQ_URL: ${RABBITMQ_URL}
+    ports:
+      - "3002:3002"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - marketplace-network
+
+  catalog-service:
+    build:
+      context: .
+      dockerfile: apps/catalog-service/Dockerfile
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+    ports:
+      - "3003:3003"
+    networks:
+      - marketplace-network
+
+  rabbitmq:
+    image: rabbitmq:4.3.6-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - marketplace-network
+
+networks:
+  marketplace-network:
+    name: marketplace-network
