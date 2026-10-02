@@ -59,6 +59,8 @@ flutter:
 
   assets:
     - assets/illustrations/
+    - assets/fonts/OFL-Fraunces.txt
+    - assets/fonts/OFL-DMSans.txt
 
   fonts:
     - family: Fraunces

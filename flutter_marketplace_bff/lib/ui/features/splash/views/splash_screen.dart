@@ -216,7 +216,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   Widget _buildWordmark(TextTheme textTheme) {
     final style = textTheme.displaySmall?.copyWith(
-      fontWeight: FontWeight.w800,
+      fontWeight: FontWeight.w700,
       letterSpacing: 1,
       color: AppColors.espresso,
     );

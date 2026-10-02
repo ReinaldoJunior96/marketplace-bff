@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_fonts.dart';
 import 'app_spacing.dart';
 
 abstract final class AppTheme {
@@ -26,20 +27,32 @@ abstract final class AppTheme {
           outlineVariant: AppColors.stone,
         );
 
-    final base = ThemeData(colorScheme: colorScheme);
-    final textTheme = base.textTheme
-        .apply(bodyColor: AppColors.espresso, displayColor: AppColors.espresso)
-        .copyWith(
-          headlineSmall: base.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.5,
-            color: AppColors.espresso,
-          ),
-          titleLarge: base.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: AppColors.espresso,
-          ),
+    final base = ThemeData(colorScheme: colorScheme, fontFamily: AppFonts.body);
+    final baseText = base.textTheme.apply(
+      bodyColor: AppColors.espresso,
+      displayColor: AppColors.espresso,
+    );
+
+    // Fraunces (serifada) para títulos; DM Sans para o resto.
+    TextStyle? display(TextStyle? style, {double letterSpacing = -0.5}) =>
+        style?.copyWith(
+          fontFamily: AppFonts.display,
+          fontWeight: FontWeight.w700,
+          letterSpacing: letterSpacing,
         );
+
+    final textTheme = baseText.copyWith(
+      displayLarge: display(baseText.displayLarge),
+      displayMedium: display(baseText.displayMedium),
+      displaySmall: display(baseText.displaySmall),
+      headlineLarge: display(baseText.headlineLarge),
+      headlineMedium: display(baseText.headlineMedium),
+      headlineSmall: display(baseText.headlineSmall),
+      titleLarge: display(baseText.titleLarge, letterSpacing: -0.2),
+      titleMedium: baseText.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+      titleSmall: baseText.titleSmall?.copyWith(fontWeight: FontWeight.w500),
+      labelLarge: baseText.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+    );
 
     final roundedMd = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
