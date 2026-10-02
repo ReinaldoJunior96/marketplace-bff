@@ -4,6 +4,7 @@ import {
 } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../src/app.module.js';
+import { AuditGateway } from '../src/audit/audit.gateway.js';
 import { CatalogGateway } from '../src/catalog/catalog.gateway.js';
 import { DownstreamServiceUnavailableException } from '../src/common/downstream-service.exception.js';
 import { OrdersGateway } from '../src/orders/orders.gateway.js';
@@ -29,6 +30,25 @@ describe('AppController (e2e)', () => {
   const findAllProducts = vi.fn().mockResolvedValue([product]);
   const createOrder = vi.fn().mockResolvedValue(order);
   const findAllOrders = vi.fn().mockResolvedValue([order]);
+  const auditEvents = [
+    {
+      eventId: 'event-1',
+      eventType: 'order.created',
+      correlationId: 'correlation-1',
+      occurredAt: '2026-10-02T12:00:00.000Z',
+      consumedAt: '2026-10-02T12:00:00.100Z',
+      payload: { orderId: 'order-001', customerId: 'customer-123' },
+    },
+    {
+      eventId: 'event-2',
+      eventType: 'notification.sent',
+      correlationId: 'correlation-1',
+      occurredAt: '2026-10-02T12:00:01.000Z',
+      consumedAt: '2026-10-02T12:00:01.100Z',
+      payload: { orderId: 'order-001', customerId: 'customer-123' },
+    },
+  ];
+  const findAllAuditEvents = vi.fn().mockResolvedValue(auditEvents);
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
@@ -41,6 +61,8 @@ describe('AppController (e2e)', () => {
       })
       .overrideProvider(OrdersGateway)
       .useValue({ create: createOrder, findAll: findAllOrders })
+      .overrideProvider(AuditGateway)
+      .useValue({ findAll: findAllAuditEvents })
       .compile();
 
     app = moduleFixture.createNestApplication<NestFastifyApplication>(
@@ -252,6 +274,83 @@ describe('AppController (e2e)', () => {
 
     expect(response.statusCode).toBe(400);
     expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it('returns the mobile product detail contract', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/mobile/products/product-001',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual(product);
+  });
+
+  it('lists notifications sent to the mobile customer', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/mobile/notifications?customerId=customer-123',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual([
+      {
+        id: 'event-2',
+        orderId: 'order-001',
+        title: 'Pedido confirmado',
+        message: 'Seu pedido #order-00 foi recebido e já está sendo preparado.',
+        sentAt: '2026-10-02T12:00:01.000Z',
+      },
+    ]);
+  });
+
+  it('requires the customer when listing notifications', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/mobile/notifications',
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('returns the order timeline for mobile', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/mobile/orders/order-001/timeline',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      orderId: 'order-001',
+      steps: [
+        {
+          event: 'order.created',
+          service: 'order-service',
+          occurredAt: '2026-10-02T12:00:00.000Z',
+          auditedAt: '2026-10-02T12:00:00.100Z',
+        },
+        {
+          event: 'notification.sent',
+          service: 'notification-service',
+          occurredAt: '2026-10-02T12:00:01.000Z',
+          auditedAt: '2026-10-02T12:00:01.100Z',
+        },
+      ],
+    });
+  });
+
+  it('keeps notifications working when the Audit Service is down', async () => {
+    findAllAuditEvents.mockRejectedValueOnce(
+      new DownstreamServiceUnavailableException('audit-service'),
+    );
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/mobile/notifications?customerId=customer-123',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual([]);
   });
 });
 

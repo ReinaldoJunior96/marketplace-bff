@@ -86,6 +86,16 @@ Marketplace BFF
 
 A Web recebe mais detalhes do produto. O Mobile recebe apenas `id`, `name`, `price` e `thumbnail`. Contratos específicos reduzem dados desnecessários e desacoplam os clientes dos serviços internos, mas aumentam a responsabilidade e a quantidade de contratos mantidos pelo BFF.
 
+## Mobile activity
+
+O app mobile (`flutter_marketplace_bff`) acompanha os efeitos assíncronos de um pedido pelo BFF, sem acessar os serviços internos:
+
+- `GET /api/mobile/products/:id` devolve o detalhe do produto para a tela de produto.
+- `GET /api/mobile/notifications?customerId=...` lista as notificações enviadas ao cliente (eventos `notification.sent`).
+- `GET /api/mobile/orders/:id/timeline` mostra os eventos do pedido em ordem, com o serviço que originou cada um.
+
+Os dados vêm do Audit Service (`AUDIT_SERVICE_URL=http://audit-service:3002`), que registra todos os eventos da exchange. O Audit é tratado como dependência opcional: se estiver indisponível, essas rotas respondem com listas vazias pelo fallback do BFF, e a readiness do BFF não depende dele. O trade-off é que a timeline é eventualmente consistente — ela aparece aos poucos, conforme os consumers processam os eventos.
+
 ## Messaging
 
 A criação de um pedido possui ações secundárias que não precisam bloquear a resposta HTTP. RabbitMQ será usado para distribuir esses eventos para consumidores independentes.
