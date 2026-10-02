@@ -5,7 +5,8 @@ import 'app_motion.dart';
 /// Faz o filho surgir com fade e deslize, após [delay].
 ///
 /// O atraso é parte da própria animação (um `Interval`), sem timers —
-/// assim a animação para junto com o widget.
+/// assim a animação para junto com o widget. Dentro de uma rota que ainda
+/// está em transição, espera a transição terminar.
 class FadeSlideIn extends StatefulWidget {
   const FadeSlideIn({
     super.key,
@@ -46,6 +47,8 @@ class _FadeSlideInState extends State<FadeSlideIn>
     );
   }
 
+  Animation<double>? _routeAnimation;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -53,13 +56,38 @@ class _FadeSlideInState extends State<FadeSlideIn>
     _started = true;
     if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
       _controller.value = 1;
-    } else {
-      _controller.forward();
+      return;
     }
+
+    // Se a tela ainda está entrando (ex.: revelação circular), a cascata só
+    // começa quando a transição termina — senão ela acontece escondida.
+    // A animação da rota só fica ligada após o primeiro frame.
+    final route = ModalRoute.of(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final routeAnimation = route?.animation;
+      if (routeAnimation == null || routeAnimation.isCompleted) {
+        _controller.forward();
+      } else {
+        _routeAnimation = routeAnimation..addStatusListener(_onRouteStatus);
+      }
+    });
+  }
+
+  void _onRouteStatus(AnimationStatus status) {
+    if (!status.isCompleted) return;
+    _stopWatchingRoute();
+    _controller.forward();
+  }
+
+  void _stopWatchingRoute() {
+    _routeAnimation?.removeStatusListener(_onRouteStatus);
+    _routeAnimation = null;
   }
 
   @override
   void dispose() {
+    _stopWatchingRoute();
     _controller.dispose();
     super.dispose();
   }

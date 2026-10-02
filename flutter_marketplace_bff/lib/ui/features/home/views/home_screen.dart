@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/product.dart';
+import '../../../core/animations/app_motion.dart';
+import '../../../core/animations/fade_slide_in.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/state_message.dart';
@@ -23,6 +25,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   static const _skeletonCount = 6;
+
+  /// Depois disso os cards entram juntos, para a cascata não ficar lenta.
+  static const _maxStaggeredCards = 8;
 
   HomeViewModel get _viewModel => widget.viewModel;
 
@@ -64,11 +69,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       sliver: SliverList.list(
                         children: [
-                          const _Header(),
+                          const FadeSlideIn(child: _Header()),
                           const SizedBox(height: AppSpacing.lg),
-                          HomeSearchField(onChanged: _viewModel.search),
+                          FadeSlideIn(
+                            delay: AppMotion.stagger * 2,
+                            child: HomeSearchField(
+                              onChanged: _viewModel.search,
+                            ),
+                          ),
                           const SizedBox(height: AppSpacing.xl),
-                          const HomeBanner(),
+                          FadeSlideIn(
+                            delay: AppMotion.stagger * 4,
+                            child: const HomeBanner(),
+                          ),
                         ],
                       ),
                     ),
@@ -89,7 +102,11 @@ class _HomeScreenState extends State<HomeScreen> {
         _ProductGrid(
           gutter: gutter,
           itemCount: _skeletonCount,
-          itemBuilder: (_) => const ProductCardSkeleton(),
+          itemBuilder: (index) => FadeSlideIn(
+            delay: AppMotion.stagger * index,
+            offset: Offset.zero,
+            child: const ProductCardSkeleton(),
+          ),
         ),
       ],
       HomeFailure(:final message) => [
@@ -131,15 +148,26 @@ class _HomeScreenState extends State<HomeScreen> {
       SliverPadding(
         padding: EdgeInsets.fromLTRB(gutter, 0, gutter, AppSpacing.md),
         sliver: SliverToBoxAdapter(
-          child: _SectionHeader(productCount: products.length),
+          child: FadeSlideIn(
+            delay: AppMotion.stagger * 3,
+            child: _SectionHeader(productCount: products.length),
+          ),
         ),
       ),
       _ProductGrid(
         gutter: gutter,
         itemCount: products.length,
-        itemBuilder: (index) => ProductCard(
-          product: products[index],
-          backgroundColor: AppColors.pastels[index % AppColors.pastels.length],
+        // Cada card entra em cascata; a chave pelo id faz os resultados de
+        // uma nova busca entrarem animados também.
+        itemBuilder: (index) => FadeSlideIn(
+          key: ValueKey(products[index].id),
+          delay: AppMotion.stagger * math.min(index, _maxStaggeredCards),
+          offset: const Offset(0, 40),
+          child: ProductCard(
+            product: products[index],
+            backgroundColor:
+                AppColors.pastels[index % AppColors.pastels.length],
+          ),
         ),
       ),
     ];
@@ -157,7 +185,7 @@ class _StateSliver extends StatelessWidget {
   Widget build(BuildContext context) {
     return SliverPadding(
       padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
-      sliver: SliverToBoxAdapter(child: child),
+      sliver: SliverToBoxAdapter(child: FadeSlideIn(child: child)),
     );
   }
 }
@@ -219,9 +247,23 @@ class _SectionHeader extends StatelessWidget {
     return Row(
       children: [
         Expanded(child: Text('Para você', style: textTheme.titleLarge)),
-        Text(
-          label,
-          style: textTheme.bodyMedium?.copyWith(color: AppColors.mocha),
+        AnimatedSwitcher(
+          duration: AppMotion.fast,
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween(
+                begin: const Offset(0, 0.5),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+          ),
+          child: Text(
+            label,
+            key: ValueKey(label),
+            style: textTheme.bodyMedium?.copyWith(color: AppColors.mocha),
+          ),
         ),
       ],
     );

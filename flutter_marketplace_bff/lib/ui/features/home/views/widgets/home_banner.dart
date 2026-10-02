@@ -20,12 +20,12 @@ class HomeBanner extends StatelessWidget {
             const Positioned(
               right: -36,
               top: -36,
-              child: _Circle(size: 140, color: AppColors.clay),
+              child: _Circle(size: 140, color: AppColors.clay, delay: 0.3),
             ),
             const Positioned(
               right: 56,
               bottom: -48,
-              child: _Circle(size: 110, color: AppColors.sage),
+              child: _Circle(size: 110, color: AppColors.sage, delay: 0.45),
             ),
             Padding(
               padding: const EdgeInsets.all(AppSpacing.xl),
@@ -67,20 +67,35 @@ class HomeBanner extends StatelessWidget {
   }
 }
 
+/// Círculo decorativo que surge com um "pop" elástico.
 class _Circle extends StatelessWidget {
-  const _Circle({required this.size, required this.color});
+  const _Circle({required this.size, required this.color, this.delay = 0});
 
   final double size;
   final Color color;
 
+  /// Fração da animação antes do círculo começar a crescer.
+  final double delay;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.45),
-        shape: BoxShape.circle,
+    final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: reduceMotion
+          ? Duration.zero
+          : const Duration(milliseconds: 1400),
+      curve: Interval(delay, 1, curve: Curves.elasticOut),
+      builder: (context, scale, child) =>
+          Transform.scale(scale: scale, child: child),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.45),
+          shape: BoxShape.circle,
+        ),
       ),
     );
   }

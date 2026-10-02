@@ -29,11 +29,42 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(subject());
+    await tester.pump(); // a animação começa no frame seguinte
 
     await tester.pump(const Duration(milliseconds: 150));
     expect(opacityOf(tester), 0);
 
     await tester.pump(const Duration(milliseconds: 200));
+    expect(opacityOf(tester), inExclusiveRange(0, 1));
+
+    await tester.pumpAndSettle();
+    expect(opacityOf(tester), 1);
+  });
+
+  testWidgets('espera a transição da rota terminar para começar', (
+    tester,
+  ) async {
+    final navigator = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      MaterialApp(navigatorKey: navigator, home: const SizedBox()),
+    );
+
+    navigator.currentState!.push(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 600),
+        pageBuilder: (_, _, _) => const FadeSlideIn(
+          duration: Duration(milliseconds: 300),
+          child: Text('oi'),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(opacityOf(tester), 0);
+
+    // A transição termina perto de 600ms; a entrada começa no frame seguinte.
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 150));
     expect(opacityOf(tester), inExclusiveRange(0, 1));
 
     await tester.pumpAndSettle();

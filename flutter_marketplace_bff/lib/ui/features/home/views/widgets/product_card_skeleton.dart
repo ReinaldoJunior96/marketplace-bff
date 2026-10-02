@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/widgets/shimmer.dart';
 
 /// Placeholder com o mesmo formato do card enquanto a vitrine carrega.
 class ProductCardSkeleton extends StatelessWidget {
@@ -10,22 +11,24 @@ class ProductCardSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(child: Container(color: AppColors.sand)),
-          const Padding(
-            padding: EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Bar(widthFactor: 0.9),
-                SizedBox(height: AppSpacing.sm),
-                _Bar(widthFactor: 0.5),
-              ],
+      child: Shimmer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: Container(color: AppColors.sand)),
+            const Padding(
+              padding: EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _Bar(widthFactor: 0.9),
+                  SizedBox(height: AppSpacing.sm),
+                  _Bar(widthFactor: 0.5),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

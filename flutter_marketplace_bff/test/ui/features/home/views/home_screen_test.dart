@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_marketplace_bff/data/services/bff_exception.dart';
 import 'package:flutter_marketplace_bff/domain/models/product.dart';
+import 'package:flutter_marketplace_bff/ui/core/animations/fade_slide_in.dart';
 import 'package:flutter_marketplace_bff/ui/core/theme/app_theme.dart';
+import 'package:flutter_marketplace_bff/ui/core/widgets/shimmer.dart';
 import 'package:flutter_marketplace_bff/ui/features/home/view_models/home_view_model.dart';
 import 'package:flutter_marketplace_bff/ui/features/home/views/home_screen.dart';
 import 'package:flutter_marketplace_bff/ui/features/home/views/widgets/product_card.dart';
@@ -47,6 +49,7 @@ void main() {
     await pumpHome(tester);
 
     expect(find.byType(ProductCardSkeleton), findsWidgets);
+    expect(find.byType(Shimmer), findsWidgets);
     expect(find.byType(ProductCard), findsNothing);
 
     response.complete(sampleProducts);
@@ -62,6 +65,34 @@ void main() {
     expect(find.text(r'R$ 399,90'), findsOneWidget);
     expect(find.text(r'R$ 1.799,90'), findsOneWidget);
     expect(find.text('3 produtos'), findsOneWidget);
+  });
+
+  testWidgets('cards entram em cascata', (tester) async {
+    await pumpHome(tester, size: const Size(800, 1600));
+    await tester.pump(); // resposta do repositório
+    await tester.pump(); // a cascata começa no frame seguinte
+    await tester.pump(const Duration(milliseconds: 100));
+
+    double opacityOfCard(int index) => tester
+        .widget<FadeTransition>(
+          find
+              .ancestor(
+                of: find.byType(ProductCard).at(index),
+                matching: find.descendant(
+                  of: find.byType(FadeSlideIn),
+                  matching: find.byType(FadeTransition),
+                ),
+              )
+              .first,
+        )
+        .opacity
+        .value;
+
+    expect(opacityOfCard(0), greaterThan(opacityOfCard(2)));
+
+    await tester.pumpAndSettle();
+    expect(opacityOfCard(0), 1);
+    expect(opacityOfCard(2), 1);
   });
 
   testWidgets('busca filtra os cards', (tester) async {
