@@ -33,6 +33,20 @@ docker run --rm -p 3000:3000 marketplace-bff
 
 Pedidos pertencem ao Order Service, não ao BFF. O serviço expõe `POST /orders`, `GET /orders/:id` e `GET /health` na porta 3001.
 
+Web e Mobile não acessam o Order Service diretamente. Os clientes criam pedidos pelos contratos `POST /api/web/orders` e `POST /api/mobile/orders` do BFF. O BFF valida e adapta o payload, quando necessário, e delega a criação ao Order Service usando `ORDER_SERVICE_URL=http://order-service:3001` dentro da rede Docker. A regra de criação permanece somente no Order Service.
+
+```text
+Web / Mobile
+      |
+      v
+Marketplace BFF
+      |
+      v
+Order Service
+```
+
+O header opcional `x-correlation-id` é propagado pelo BFF. Quando ele não é enviado, o BFF gera um UUID. Nos dois casos, o identificador usado no fluxo é devolvido no header `x-correlation-id` da resposta.
+
 O armazenamento é mantido em memória para preservar o foco atual na arquitetura de comunicação. Os pedidos são perdidos quando o container reinicia. A persistência será tratada separadamente quando fizer sentido para o objetivo do projeto.
 
 ## Catalog Service
@@ -67,7 +81,10 @@ Mensageria reduz o acoplamento temporal entre serviços, mas adiciona infraestru
 O fluxo atual é:
 
 ```text
-Client
+Web / Mobile
+  |
+  v
+Marketplace BFF
   |
   v
 Order Service
@@ -80,6 +97,27 @@ Order Service
 ```
 
 O Order Service publica `order.created` na exchange `marketplace.events`. O HTTP confirma a criação, enquanto o evento permite que outros serviços reajam sem uma chamada direta.
+
+Para validar o fluxo completo a partir do BFF:
+
+```sh
+curl -i -X POST http://localhost:3000/api/web/orders \
+  -H "Content-Type: application/json" \
+  -H "x-correlation-id: front-test-001" \
+  -d '{
+    "customerId": "customer-123",
+    "items": [
+      {
+        "productId": "product-001",
+        "quantity": 1
+      }
+    ]
+  }'
+
+curl http://localhost:3002/logs/front-test-001
+```
+
+Após o processamento assíncrono, a consulta de auditoria deve conter `order.created` e `notification.sent`, ambos associados a `front-test-001`.
 
 A exchange é do tipo `topic` para permitir assinaturas futuras como `order.*` ou `order.created`. Uma exchange `direct` faria apenas correspondência exata. Uma `fanout` enviaria todos os eventos a todas as filas, ignorando a routing key. A flexibilidade de `topic` exige uma convenção clara para nomes e bindings.
 

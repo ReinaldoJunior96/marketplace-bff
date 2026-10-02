@@ -5,6 +5,7 @@ import {
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../src/app.module.js';
 import { CatalogGateway } from '../src/catalog/catalog.gateway.js';
+import { OrdersGateway } from '../src/orders/orders.gateway.js';
 
 describe('AppController (e2e)', () => {
   let app: NestFastifyApplication;
@@ -17,6 +18,14 @@ describe('AppController (e2e)', () => {
     category: 'Periféricos',
     stock: 10,
   };
+  const order = {
+    id: 'order-001',
+    customerId: 'customer-123',
+    items: [{ productId: 'product-001', quantity: 1 }],
+    status: 'CREATED' as const,
+    createdAt: '2026-10-02T12:00:00.000Z',
+  };
+  const createOrder = vi.fn().mockResolvedValue(order);
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
@@ -27,6 +36,8 @@ describe('AppController (e2e)', () => {
         findAll: vi.fn().mockResolvedValue([product]),
         findById: vi.fn().mockResolvedValue(product),
       })
+      .overrideProvider(OrdersGateway)
+      .useValue({ create: createOrder })
       .compile();
 
     app = moduleFixture.createNestApplication<NestFastifyApplication>(
@@ -98,5 +109,64 @@ describe('AppController (e2e)', () => {
     expect(body.products[0]).not.toHaveProperty('description');
     expect(body.products[0]).not.toHaveProperty('stock');
     expect(body.products[0]).not.toHaveProperty('category');
+  });
+
+  it.each(['web', 'mobile'])(
+    'creates an order through the %s client API',
+    async (client) => {
+      const payload = {
+        customerId: 'customer-123',
+        items: [{ productId: 'product-001', quantity: 1 }],
+      };
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/${client}/orders`,
+        headers: { 'x-correlation-id': 'front-test-001' },
+        payload,
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(response.headers['x-correlation-id']).toBe('front-test-001');
+      expect(response.json()).toEqual(order);
+      expect(createOrder).toHaveBeenCalledWith(payload, 'front-test-001');
+    },
+  );
+
+  it('generates and returns a correlation ID when one is not provided', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/web/orders',
+      payload: {
+        customerId: 'customer-123',
+        items: [{ productId: 'product-001', quantity: 1 }],
+      },
+    });
+
+    const correlationId = response.headers['x-correlation-id'];
+
+    expect(response.statusCode).toBe(201);
+    expect(correlationId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+    expect(createOrder).toHaveBeenLastCalledWith(
+      expect.any(Object),
+      correlationId,
+    );
+  });
+
+  it('rejects an invalid order before calling the Order Service', async () => {
+    createOrder.mockClear();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/mobile/orders',
+      payload: {
+        customerId: 'customer-123',
+        items: [{ productId: 'product-001', quantity: 0 }],
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(createOrder).not.toHaveBeenCalled();
   });
 });
