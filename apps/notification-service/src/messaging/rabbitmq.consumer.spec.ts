@@ -1,4 +1,4 @@
-import type { Channel, ConsumeMessage } from 'amqplib';
+import type { ConfirmChannel, ConsumeMessage } from 'amqplib';
 import type { NotificationService } from '../notifications/notification.service.js';
 import { RabbitMqConsumer } from './rabbitmq.consumer.js';
 import type { RabbitMqPublisher } from './rabbitmq.publisher.js';
@@ -28,7 +28,10 @@ describe('RabbitMqConsumer', () => {
     );
     const message = createMessage(event);
 
-    await consumer.handleMessage(message, { ack, nack } as unknown as Channel);
+    await consumer.handleMessage(message, {
+      ack,
+      nack,
+    } as unknown as ConfirmChannel);
 
     expect(sendOrderCreated).toHaveBeenCalledOnce();
     expect(publishNotificationSent).toHaveBeenCalledOnce();
@@ -66,7 +69,7 @@ describe('RabbitMqConsumer', () => {
       { publishNotificationSent } as unknown as RabbitMqPublisher,
     );
     const message = createMessage(event);
-    const channel = { ack, nack } as unknown as Channel;
+    const channel = { ack, nack } as unknown as ConfirmChannel;
 
     await consumer.handleMessage(message, channel);
     await consumer.handleMessage(message, channel);
@@ -77,24 +80,39 @@ describe('RabbitMqConsumer', () => {
     expect(nack).not.toHaveBeenCalled();
   });
 
-  it('rejects without requeue when processing fails', async () => {
+  it('schedules a retry when processing fails', async () => {
     const sendOrderCreated = vi.fn(() => {
       throw new Error('Notification failed');
     });
     const publishNotificationSent = vi.fn();
     const ack = vi.fn();
     const nack = vi.fn();
+    const sendToQueue = vi.fn();
+    const waitForConfirms = vi.fn().mockResolvedValue(undefined);
     const consumer = new RabbitMqConsumer(
       { sendOrderCreated } as unknown as NotificationService,
       { publishNotificationSent } as unknown as RabbitMqPublisher,
     );
     const message = createMessage(event);
 
-    await consumer.handleMessage(message, { ack, nack } as unknown as Channel);
+    await consumer.handleMessage(message, {
+      ack,
+      nack,
+      sendToQueue,
+      waitForConfirms,
+    } as unknown as ConfirmChannel);
 
     expect(publishNotificationSent).not.toHaveBeenCalled();
-    expect(ack).not.toHaveBeenCalled();
-    expect(nack).toHaveBeenCalledWith(message, false, false);
+    expect(sendToQueue).toHaveBeenCalledWith(
+      'notification.order-events.retry',
+      message.content,
+      expect.objectContaining({
+        headers: { 'x-retry-count': 1 },
+      }),
+    );
+    expect(waitForConfirms).toHaveBeenCalledOnce();
+    expect(ack).toHaveBeenCalledWith(message);
+    expect(nack).not.toHaveBeenCalled();
   });
 
   it('does not acknowledge when notification.sent publication fails', async () => {
@@ -104,23 +122,83 @@ describe('RabbitMqConsumer', () => {
       .mockRejectedValue(new Error('Publish failed'));
     const ack = vi.fn();
     const nack = vi.fn();
+    const sendToQueue = vi.fn();
+    const waitForConfirms = vi.fn().mockResolvedValue(undefined);
     const consumer = new RabbitMqConsumer(
       { sendOrderCreated } as unknown as NotificationService,
       { publishNotificationSent } as unknown as RabbitMqPublisher,
     );
     const message = createMessage(event);
 
-    await consumer.handleMessage(message, { ack, nack } as unknown as Channel);
+    await consumer.handleMessage(message, {
+      ack,
+      nack,
+      sendToQueue,
+      waitForConfirms,
+    } as unknown as ConfirmChannel);
 
     expect(sendOrderCreated).toHaveBeenCalledOnce();
     expect(publishNotificationSent).toHaveBeenCalledOnce();
+    expect(sendToQueue).toHaveBeenCalledOnce();
+    expect(ack).toHaveBeenCalledWith(message);
+    expect(nack).not.toHaveBeenCalled();
+  });
+
+  it('rejects after the retry limit is exhausted', async () => {
+    const sendOrderCreated = vi.fn(() => {
+      throw new Error('Notification failed');
+    });
+    const ack = vi.fn();
+    const nack = vi.fn();
+    const sendToQueue = vi.fn();
+    const consumer = new RabbitMqConsumer(
+      { sendOrderCreated } as unknown as NotificationService,
+      { publishNotificationSent: vi.fn() } as unknown as RabbitMqPublisher,
+    );
+    const message = createMessage(event, { 'x-retry-count': 2 });
+
+    await consumer.handleMessage(message, {
+      ack,
+      nack,
+      sendToQueue,
+    } as unknown as ConfirmChannel);
+
+    expect(sendToQueue).not.toHaveBeenCalled();
     expect(ack).not.toHaveBeenCalled();
     expect(nack).toHaveBeenCalledWith(message, false, false);
   });
 });
 
-function createMessage(payload: object): ConsumeMessage {
+function createMessage(
+  payload: object,
+  headers: Record<string, unknown> = {},
+): ConsumeMessage {
   return {
     content: Buffer.from(JSON.stringify(payload)),
+    properties: {
+      headers,
+      contentType: 'application/json',
+      type: eventType(payload),
+      messageId: eventId(payload),
+      correlationId: correlationId(payload),
+    },
   } as ConsumeMessage;
+}
+
+function eventType(payload: object): string | undefined {
+  return 'eventType' in payload && typeof payload.eventType === 'string'
+    ? payload.eventType
+    : undefined;
+}
+
+function eventId(payload: object): string | undefined {
+  return 'eventId' in payload && typeof payload.eventId === 'string'
+    ? payload.eventId
+    : undefined;
+}
+
+function correlationId(payload: object): string | undefined {
+  return 'correlationId' in payload && typeof payload.correlationId === 'string'
+    ? payload.correlationId
+    : undefined;
 }

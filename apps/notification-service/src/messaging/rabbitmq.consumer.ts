@@ -5,8 +5,8 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import amqp, {
-  type Channel,
   type ChannelModel,
+  type ConfirmChannel,
   type ConsumeMessage,
 } from 'amqplib';
 import { createNotificationSentEvent } from '../events/notification-sent.event.js';
@@ -18,6 +18,7 @@ import { NotificationService } from '../notifications/notification.service.js';
 import {
   MARKETPLACE_EVENTS_EXCHANGE,
   NOTIFICATION_ORDER_EVENTS_QUEUE,
+  NOTIFICATION_ORDER_EVENTS_RETRY_QUEUE,
 } from './rabbitmq.constants.js';
 import { RabbitMqPublisher } from './rabbitmq.publisher.js';
 
@@ -25,8 +26,16 @@ import { RabbitMqPublisher } from './rabbitmq.publisher.js';
 export class RabbitMqConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMqConsumer.name);
   private connection?: ChannelModel;
-  private channel?: Channel;
+  private channel?: ConfirmChannel;
   private readonly processedEvents = new Set<string>();
+  private readonly maxRetries = readNonNegativeInteger(
+    'EVENT_RETRY_MAX_ATTEMPTS',
+    2,
+  );
+  private readonly retryDelayMs = readPositiveInteger(
+    'EVENT_RETRY_DELAY_MS',
+    1_000,
+  );
 
   constructor(
     private readonly notificationService: NotificationService,
@@ -43,13 +52,21 @@ export class RabbitMqConsumer implements OnModuleInit, OnModuleDestroy {
     this.connection = await amqp.connect(url, {
       clientProperties: { connection_name: 'notification-service' },
     });
-    this.channel = await this.connection.createChannel();
+    this.channel = await this.connection.createConfirmChannel();
 
     await this.channel.assertExchange(MARKETPLACE_EVENTS_EXCHANGE, 'topic', {
       durable: true,
     });
     await this.channel.assertQueue(NOTIFICATION_ORDER_EVENTS_QUEUE, {
       durable: true,
+    });
+    await this.channel.assertQueue(NOTIFICATION_ORDER_EVENTS_RETRY_QUEUE, {
+      durable: true,
+      arguments: {
+        'x-message-ttl': this.retryDelayMs,
+        'x-dead-letter-exchange': '',
+        'x-dead-letter-routing-key': NOTIFICATION_ORDER_EVENTS_QUEUE,
+      },
     });
     await this.channel.bindQueue(
       NOTIFICATION_ORDER_EVENTS_QUEUE,
@@ -75,10 +92,13 @@ export class RabbitMqConsumer implements OnModuleInit, OnModuleDestroy {
 
   async handleMessage(
     message: ConsumeMessage,
-    channel: Channel,
+    channel: ConfirmChannel,
   ): Promise<void> {
+    let event: OrderCreatedEvent | undefined;
+    const attempt = getRetryCount(message) + 1;
+
     try {
-      const event = parseOrderCreatedEvent(message.content);
+      event = parseOrderCreatedEvent(message.content);
 
       if (this.processedEvents.has(event.eventId)) {
         this.logger.warn({
@@ -98,6 +118,7 @@ export class RabbitMqConsumer implements OnModuleInit, OnModuleDestroy {
         orderId: event.data.orderId,
         customerId: event.data.customerId,
         correlationId: event.correlationId,
+        attempt,
         message: 'Order created event received',
       });
 
@@ -119,12 +140,81 @@ export class RabbitMqConsumer implements OnModuleInit, OnModuleDestroy {
         error instanceof Error ? error.message : 'Unknown processing error';
 
       this.logger.error({
+        service: 'notification-service',
+        eventId: event?.eventId ?? message.properties?.messageId,
+        eventType: event?.eventType ?? message.properties?.type,
+        correlationId:
+          event?.correlationId ?? message.properties?.correlationId,
+        attempt,
         message: 'Order created event processing failed',
         error: errorMessage,
       });
-      channel.nack(message, false, false);
+
+      if (attempt <= this.maxRetries) {
+        channel.sendToQueue(
+          NOTIFICATION_ORDER_EVENTS_RETRY_QUEUE,
+          message.content,
+          retryProperties(message, attempt),
+        );
+        await channel.waitForConfirms();
+        channel.ack(message);
+        this.logger.warn({
+          service: 'notification-service',
+          eventId: event?.eventId ?? message.properties?.messageId,
+          eventType: event?.eventType ?? message.properties?.type,
+          correlationId:
+            event?.correlationId ?? message.properties?.correlationId,
+          attempt,
+          maxAttempts: this.maxRetries + 1,
+          message: 'Event scheduled for retry',
+        });
+      } else {
+        channel.nack(message, false, false);
+      }
     }
   }
+}
+
+function getRetryCount(message: ConsumeMessage): number {
+  const value = message.properties?.headers?.['x-retry-count'];
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0
+    ? value
+    : 0;
+}
+
+function retryProperties(message: ConsumeMessage, retryCount: number) {
+  return {
+    persistent: true,
+    contentType: message.properties?.contentType ?? 'application/json',
+    type: message.properties?.type,
+    messageId: message.properties?.messageId,
+    correlationId: message.properties?.correlationId,
+    timestamp: message.properties?.timestamp,
+    headers: {
+      ...message.properties?.headers,
+      'x-retry-count': retryCount,
+    },
+  };
+}
+
+function readNonNegativeInteger(name: string, fallback: number): number {
+  const value = process.env[name];
+  if (value === undefined) return fallback;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(`${name} must be a non-negative integer`);
+  }
+  return parsed;
+}
+
+function readPositiveInteger(name: string, fallback: number): number {
+  const value = process.env[name];
+  if (value === undefined) return fallback;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+  return parsed;
 }
 
 function parseOrderCreatedEvent(content: Buffer): OrderCreatedEvent {
