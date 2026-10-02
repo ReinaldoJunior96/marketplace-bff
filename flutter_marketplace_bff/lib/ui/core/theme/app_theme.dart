@@ -34,7 +34,7 @@ abstract final class AppTheme {
     );
 
     // Fraunces (serifada) para títulos; DM Sans para o resto.
-    TextStyle? display(TextStyle? style, {double letterSpacing = -0.5}) =>
+    TextStyle? display(TextStyle? style, {double letterSpacing = 0}) =>
         style?.copyWith(
           fontFamily: AppFonts.display,
           fontWeight: FontWeight.w700,
@@ -48,7 +48,7 @@ abstract final class AppTheme {
       headlineLarge: display(baseText.headlineLarge),
       headlineMedium: display(baseText.headlineMedium),
       headlineSmall: display(baseText.headlineSmall),
-      titleLarge: display(baseText.titleLarge, letterSpacing: -0.2),
+      titleLarge: display(baseText.titleLarge),
       titleMedium: baseText.titleMedium?.copyWith(fontWeight: FontWeight.w700),
       titleSmall: baseText.titleSmall?.copyWith(fontWeight: FontWeight.w500),
       labelLarge: baseText.labelLarge?.copyWith(fontWeight: FontWeight.w700),

@@ -102,9 +102,10 @@ class _OrderTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    // O contrato mobile conta linhas do pedido (produtos distintos).
     final items = order.itemsCount == 1
-        ? '1 item'
-        : '${order.itemsCount} itens';
+        ? '1 produto'
+        : '${order.itemsCount} produtos';
 
     return Card(
       child: Padding(

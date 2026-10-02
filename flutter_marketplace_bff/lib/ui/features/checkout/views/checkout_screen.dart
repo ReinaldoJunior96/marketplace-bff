@@ -243,7 +243,7 @@ class _FakeCreditCard extends StatelessWidget {
                           const SizedBox(height: AppSpacing.sm),
                           Row(
                             children: [
-                              Flexible(
+                              Expanded(
                                 child: Text(
                                   'CLIENTE TERRASHOP',
                                   overflow: TextOverflow.ellipsis,
@@ -260,7 +260,7 @@ class _FakeCreditCard extends StatelessWidget {
                                   color: onCard,
                                 ),
                               ),
-                              const Spacer(),
+                              const SizedBox(width: AppSpacing.lg),
                               const FaIcon(
                                 FontAwesomeIcons.ccVisa,
                                 size: 30,
