@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mesmo creme do tema Flutter (AppColors.cream) para não piscar branco. -->
+    <color name="splash_background">#F8F3EC</color>
+</resources>
