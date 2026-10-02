@@ -47,6 +47,8 @@ Order Service
 
 O header opcional `x-correlation-id` é propagado pelo BFF. Quando ele não é enviado, o BFF gera um UUID. Nos dois casos, o identificador usado no fluxo é devolvido no header `x-correlation-id` da resposta.
 
+Erros HTTP do BFF seguem um contrato único com `statusCode`, `error`, `message` e `correlationId`. Falhas de serviços internos são convertidas em respostas públicas controladas, sem stack trace, hostname Docker ou detalhes de conexão. O filtro global do NestJS centraliza essa convenção e mantém os gateways focados na integração.
+
 Para a tela "Meus pedidos", Web e Mobile consultam respectivamente `GET /api/web/orders` e `GET /api/mobile/orders`. A Web recebe os pedidos completos; o Mobile recebe apenas `id`, `status`, `itemsCount` e `createdAt`.
 
 O armazenamento é mantido em memória para preservar o foco atual na arquitetura de comunicação. Os pedidos são perdidos quando o container reinicia. A persistência será tratada separadamente quando fizer sentido para o objetivo do projeto.

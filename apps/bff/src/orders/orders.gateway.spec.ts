@@ -1,4 +1,4 @@
-import { BadGatewayException } from '@nestjs/common';
+import { DownstreamServiceUnavailableException } from '../common/downstream-service.exception.js';
 import { OrdersGateway } from './orders.gateway.js';
 
 describe('OrdersGateway', () => {
@@ -63,7 +63,7 @@ describe('OrdersGateway', () => {
     });
   });
 
-  it('maps a connection failure to BadGatewayException', async () => {
+  it('maps a connection failure to a controlled service error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
 
     const gateway = new OrdersGateway();
@@ -76,6 +76,6 @@ describe('OrdersGateway', () => {
         },
         'front-test-001',
       ),
-    ).rejects.toBeInstanceOf(BadGatewayException);
+    ).rejects.toBeInstanceOf(DownstreamServiceUnavailableException);
   });
 });

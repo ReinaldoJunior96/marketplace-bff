@@ -1,4 +1,5 @@
-import { BadGatewayException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
+import { DownstreamServiceUnavailableException } from '../common/downstream-service.exception.js';
 import { CatalogGateway } from './catalog.gateway.js';
 
 describe('CatalogGateway', () => {
@@ -41,13 +42,13 @@ describe('CatalogGateway', () => {
     );
   });
 
-  it('maps a connection failure to BadGatewayException', async () => {
+  it('maps a connection failure to a controlled service error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
 
     const gateway = new CatalogGateway();
 
     await expect(gateway.findAll()).rejects.toBeInstanceOf(
-      BadGatewayException,
+      DownstreamServiceUnavailableException,
     );
   });
 });

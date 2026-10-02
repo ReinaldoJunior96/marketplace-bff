@@ -5,6 +5,7 @@ import {
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../src/app.module.js';
 import { CatalogGateway } from '../src/catalog/catalog.gateway.js';
+import { DownstreamServiceUnavailableException } from '../src/common/downstream-service.exception.js';
 import { OrdersGateway } from '../src/orders/orders.gateway.js';
 
 describe('AppController (e2e)', () => {
@@ -25,6 +26,7 @@ describe('AppController (e2e)', () => {
     status: 'CREATED' as const,
     createdAt: '2026-10-02T12:00:00.000Z',
   };
+  const findAllProducts = vi.fn().mockResolvedValue([product]);
   const createOrder = vi.fn().mockResolvedValue(order);
   const findAllOrders = vi.fn().mockResolvedValue([order]);
 
@@ -34,7 +36,7 @@ describe('AppController (e2e)', () => {
     })
       .overrideProvider(CatalogGateway)
       .useValue({
-        findAll: vi.fn().mockResolvedValue([product]),
+        findAll: findAllProducts,
         findById: vi.fn().mockResolvedValue(product),
       })
       .overrideProvider(OrdersGateway)
@@ -87,6 +89,30 @@ describe('AppController (e2e)', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ featuredProducts: [product] });
+  });
+
+  it('standardizes downstream failures without leaking details', async () => {
+    findAllProducts.mockRejectedValueOnce(
+      new DownstreamServiceUnavailableException('Catalog'),
+    );
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/web/home',
+      headers: { 'x-correlation-id': 'failure-test-001' },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.headers['x-correlation-id']).toBe('failure-test-001');
+    expect(response.json()).toEqual({
+      statusCode: 503,
+      error: 'Service Unavailable',
+      message: 'Catalog service is unavailable',
+      correlationId: 'failure-test-001',
+    });
+    expect(response.body).not.toContain('ECONNREFUSED');
+    expect(response.body).not.toContain('catalog-service');
+    expect(response.body).not.toContain('stack');
   });
 
   it('returns the reduced mobile home contract', async () => {

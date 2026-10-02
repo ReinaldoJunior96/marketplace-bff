@@ -1,8 +1,5 @@
-import {
-  BadGatewayException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { DownstreamServiceUnavailableException } from '../common/downstream-service.exception.js';
 import type { Product } from './product.js';
 
 @Injectable()
@@ -33,7 +30,7 @@ export class CatalogGateway {
     try {
       response = await fetch(`${this.baseUrl}${path}`);
     } catch {
-      throw new BadGatewayException('Catalog Service is unavailable');
+      throw new DownstreamServiceUnavailableException('Catalog');
     }
 
     if (response.status === 404) {
@@ -41,7 +38,7 @@ export class CatalogGateway {
     }
 
     if (!response.ok) {
-      throw new BadGatewayException('Catalog Service request failed');
+      throw new DownstreamServiceUnavailableException('Catalog');
     }
 
     return (await response.json()) as T;

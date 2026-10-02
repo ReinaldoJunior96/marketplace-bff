@@ -1,4 +1,5 @@
-import { BadGatewayException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { DownstreamServiceUnavailableException } from '../common/downstream-service.exception.js';
 import type { CreateOrderDto } from './dto/create-order.dto.js';
 import type { Order } from './order.js';
 
@@ -38,11 +39,11 @@ export class OrdersGateway {
       const url = `${this.baseUrl}${path}`;
       response = options ? await fetch(url, options) : await fetch(url);
     } catch {
-      throw new BadGatewayException('Order Service is unavailable');
+      throw new DownstreamServiceUnavailableException('Order');
     }
 
     if (!response.ok) {
-      throw new BadGatewayException('Order Service request failed');
+      throw new DownstreamServiceUnavailableException('Order');
     }
 
     return (await response.json()) as T;
