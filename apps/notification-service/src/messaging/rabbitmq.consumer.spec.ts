@@ -56,6 +56,27 @@ describe('RabbitMqConsumer', () => {
     );
   });
 
+  it('acknowledges a duplicate without repeating its effects', async () => {
+    const sendOrderCreated = vi.fn();
+    const publishNotificationSent = vi.fn().mockResolvedValue(undefined);
+    const ack = vi.fn();
+    const nack = vi.fn();
+    const consumer = new RabbitMqConsumer(
+      { sendOrderCreated } as unknown as NotificationService,
+      { publishNotificationSent } as unknown as RabbitMqPublisher,
+    );
+    const message = createMessage(event);
+    const channel = { ack, nack } as unknown as Channel;
+
+    await consumer.handleMessage(message, channel);
+    await consumer.handleMessage(message, channel);
+
+    expect(sendOrderCreated).toHaveBeenCalledOnce();
+    expect(publishNotificationSent).toHaveBeenCalledOnce();
+    expect(ack).toHaveBeenCalledTimes(2);
+    expect(nack).not.toHaveBeenCalled();
+  });
+
   it('rejects without requeue when processing fails', async () => {
     const sendOrderCreated = vi.fn(() => {
       throw new Error('Notification failed');

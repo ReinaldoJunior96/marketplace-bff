@@ -173,6 +173,8 @@ Ainda não há Outbox Pattern. Se a notificação for processada e a publicaçã
 
 Ainda não há retry ou DLQ. Se o processamento falhar, a mensagem é rejeitada sem voltar para a queue.
 
+Notification Service e Audit Service ignoram eventos já processados pelo mesmo `eventId`, evitando repetir efeitos quando o RabbitMQ entrega uma mensagem novamente. O histórico de idempotência ainda fica somente em memória: reiniciar o container o apaga. Em produção, ele deve usar armazenamento durável e compartilhado, como banco ou Redis.
+
 ## Audit Service
 
 O Audit Service é um consumer transversal usado para demonstrar rastreabilidade. Ele recebe os eventos da exchange `marketplace.events` pela queue própria `audit.marketplace-events` e expõe `GET /logs`, `GET /logs/:correlationId` e `GET /health` na porta 3002.

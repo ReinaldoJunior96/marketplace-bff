@@ -30,6 +30,22 @@ describe('RabbitMqConsumer', () => {
     );
   });
 
+  it('acknowledges a duplicate without storing it again', async () => {
+    const store = vi.fn();
+    const ack = vi.fn();
+    const nack = vi.fn();
+    const consumer = new RabbitMqConsumer({ store } as unknown as AuditService);
+    const message = createMessage(event);
+    const channel = { ack, nack } as unknown as Channel;
+
+    await consumer.handleMessage(message, channel);
+    await consumer.handleMessage(message, channel);
+
+    expect(store).toHaveBeenCalledOnce();
+    expect(ack).toHaveBeenCalledTimes(2);
+    expect(nack).not.toHaveBeenCalled();
+  });
+
   it('rejects without requeue when storage fails', async () => {
     const store = vi.fn(() => {
       throw new Error('Storage failed');

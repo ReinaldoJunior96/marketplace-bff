@@ -22,6 +22,7 @@ export class RabbitMqConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMqConsumer.name);
   private connection?: ChannelModel;
   private channel?: Channel;
+  private readonly processedEvents = new Set<string>();
 
   constructor(private readonly auditService: AuditService) {}
 
@@ -65,11 +66,27 @@ export class RabbitMqConsumer implements OnModuleInit, OnModuleDestroy {
     await this.connection?.close();
   }
 
-  async handleMessage(message: ConsumeMessage, channel: Channel): Promise<void> {
+  async handleMessage(
+    message: ConsumeMessage,
+    channel: Channel,
+  ): Promise<void> {
     try {
       const event = parseMarketplaceEvent(message.content);
 
+      if (this.processedEvents.has(event.eventId)) {
+        this.logger.warn({
+          service: 'audit-service',
+          eventId: event.eventId,
+          eventType: event.eventType,
+          correlationId: event.correlationId,
+          message: 'Duplicate event ignored',
+        });
+        channel.ack(message);
+        return;
+      }
+
       this.auditService.store(event);
+      this.processedEvents.add(event.eventId);
       channel.ack(message);
     } catch (error) {
       const errorMessage =

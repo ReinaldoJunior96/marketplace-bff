@@ -26,6 +26,7 @@ export class RabbitMqConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMqConsumer.name);
   private connection?: ChannelModel;
   private channel?: Channel;
+  private readonly processedEvents = new Set<string>();
 
   constructor(
     private readonly notificationService: NotificationService,
@@ -72,9 +73,24 @@ export class RabbitMqConsumer implements OnModuleInit, OnModuleDestroy {
     await this.connection?.close();
   }
 
-  async handleMessage(message: ConsumeMessage, channel: Channel): Promise<void> {
+  async handleMessage(
+    message: ConsumeMessage,
+    channel: Channel,
+  ): Promise<void> {
     try {
       const event = parseOrderCreatedEvent(message.content);
+
+      if (this.processedEvents.has(event.eventId)) {
+        this.logger.warn({
+          service: 'notification-service',
+          eventId: event.eventId,
+          eventType: event.eventType,
+          correlationId: event.correlationId,
+          message: 'Duplicate event ignored',
+        });
+        channel.ack(message);
+        return;
+      }
 
       this.logger.log({
         eventType: event.eventType,
@@ -88,6 +104,7 @@ export class RabbitMqConsumer implements OnModuleInit, OnModuleDestroy {
       this.notificationService.sendOrderCreated(event);
       const notificationSent = createNotificationSentEvent(event);
       await this.publisher.publishNotificationSent(notificationSent);
+      this.processedEvents.add(event.eventId);
       channel.ack(message);
       this.logger.log({
         eventType: event.eventType,
