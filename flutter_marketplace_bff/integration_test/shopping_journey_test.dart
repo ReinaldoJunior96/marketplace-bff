@@ -105,14 +105,15 @@ void main() {
     // Confirmação: espera o notification-service processar o pedido.
     await waitFor(tester, find.byType(OrderConfirmationScreen));
     await waitFor(tester, find.text('concluído'));
-    await wait(tester, const Duration(milliseconds: 700));
+    // Espera a revelação e a cascata de entrada terminarem.
+    await wait(tester, const Duration(seconds: 2));
     await screenshot('08_order_confirmed');
     expect(find.text('order-service'), findsOneWidget);
     expect(find.text('notification-service'), findsOneWidget);
 
     // Aviso dentro do app vindo do notification-service.
     await waitFor(tester, find.textContaining('foi recebido'));
-    await wait(tester, const Duration(milliseconds: 800));
+    await wait(tester, const Duration(milliseconds: 300));
     await screenshot('09_notification_banner');
 
     // Pedidos e notificações.

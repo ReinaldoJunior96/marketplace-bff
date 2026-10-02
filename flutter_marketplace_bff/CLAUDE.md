@@ -1,4 +1,4 @@
-# flutter_marketplace_bff
+# TerraShop (flutter_marketplace_bff)
 
 App Flutter cliente do monorepo `marketplace-bff` (o BFF e os serviços ficam em `../apps` e `../packages`).
 
@@ -55,7 +55,12 @@ lib/
 
 ## Integração com o BFF
 
-- Contratos mobile: `GET /api/mobile/home` → `{products: [{id, name, price, thumbnail}]}`; `GET/POST /api/mobile/orders`. Fonte: `../apps/bff/src/modules/mobile/`.
+- Contratos mobile (fonte: `../apps/bff/src/modules/mobile/`):
+  - `GET /api/mobile/home` → `{products: [{id, name, price, thumbnail}]}`
+  - `GET /api/mobile/products/:id` → detalhe com `description`, `category`, `stock`
+  - `POST /api/mobile/orders` (com `x-correlation-id`) e `GET /api/mobile/orders` (`itemsCount` = linhas do pedido, não unidades; a lista não filtra por cliente)
+  - `GET /api/mobile/orders/:id/timeline` e `GET /api/mobile/notifications?customerId=` — montados a partir do Audit Service; viram listas vazias se o Audit cair
+- Cliente fixo `BffConfig.demoCustomerId` (não há login). Pagamento é simulado no app; só a criação do pedido é real.
 - Erros seguem `{statusCode, error, message, correlationId}` → viram `BffException` em `BffApiClient`.
 - `price` chega em reais (`double`) e é convertido para centavos no Repository.
 - Base URL em `lib/config/bff_config.dart`: emulador Android usa `10.0.2.2`, demais `localhost`; aparelho físico: `--dart-define=BFF_BASE_URL=http://<ip>:3000`.
@@ -64,9 +69,15 @@ lib/
 ## Padrões já estabelecidos
 
 - Estado de tela como `sealed class` (`HomeLoading`/`HomeLoaded`/`HomeFailure`) + `switch` exaustivo na View.
-- Injeção manual de dependências em `main.dart`/`app.dart` (sem pacote de DI por enquanto).
+- Injeção manual: repositórios criados em `main.dart`; estado global (carrinho, notificações, aba atual, navigator) exposto pelo `AppScope` (`InheritedWidget`) em `lib/ui/core/app_scope.dart`. ViewModels de tela são criados no `didChangeDependencies` da tela e descartados no `dispose`.
+- Navegação: `AppPageRoute` (padrão), `CircularRevealRoute` (splash → app, pagamento → confirmação), Hero da foto com `productHeroTag(id)`. `AppScope.goToTab` volta à raiz e troca a aba.
+- Animações de entrada com `FadeSlideIn` + `AppMotion` (ela espera a transição da rota terminar); loops (`Shimmer`, indicadores) respeitam "reduzir movimento".
+- Ícones só do Font Awesome (`FaIcon`); ilustrações via `Illustration(AppIllustration.x)` (unDraw recolorido em `assets/illustrations/`); fontes Fraunces (títulos) e DM Sans (texto).
 - Tema e tokens em `lib/ui/core/theme/` (`AppColors`, `AppSpacing`, `AppTheme`) — paleta terrosa + pastel; não usar cores soltas nas Views.
 - Testes: `MockClient` de `package:http/testing.dart` para HTTP e fakes em `test/helpers/` para repositórios (sem mockito). Respostas mockadas com acento usam `http.Response.bytes(utf8.encode(...))`.
+- Testes de tela usam `createTestDependencies().app(...)` (`test/helpers/test_app.dart`) para ter `AppScope`.
+- Layout: não usar `Spacer` ao lado de `Text` em `Row` — use `Expanded`/`Flexible` no texto (os testes rodam com fonte mais larga e pegam o overflow).
+- Jornada E2E contra o BFF real: `flutter drive --driver=test_driver/integration_test.dart --target=integration_test/shopping_journey_test.dart -d <device>`; screenshots em `screenshots/` (ignorado), seleção do README em `docs/screenshots/`.
 - Widget tests: Finders reutilizados devem ser getters (finders cacheiam resultado); chamar `tester.pump()` após `scrollUntilVisible`; cobrir fonte grande (`textScaleFactorTestValue`) em telas novas.
 
 ## Regras
