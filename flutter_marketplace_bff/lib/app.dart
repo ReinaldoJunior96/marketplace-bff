@@ -4,6 +4,7 @@ import 'data/repositories/home_repository.dart';
 import 'ui/core/theme/app_theme.dart';
 import 'ui/features/home/view_models/home_view_model.dart';
 import 'ui/features/home/views/home_screen.dart';
+import 'ui/features/splash/views/splash_screen.dart';
 
 class MarketplaceApp extends StatefulWidget {
   const MarketplaceApp({super.key, required this.homeRepository});
@@ -31,7 +32,10 @@ class _MarketplaceAppState extends State<MarketplaceApp> {
       title: 'Terra',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: HomeScreen(viewModel: _homeViewModel),
+      home: SplashScreen(
+        preload: _homeViewModel.load,
+        nextBuilder: (_) => HomeScreen(viewModel: _homeViewModel),
+      ),
     );
   }
 }

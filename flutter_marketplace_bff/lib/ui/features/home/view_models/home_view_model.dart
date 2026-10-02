@@ -49,9 +49,15 @@ class HomeViewModel extends ChangeNotifier {
     ];
   }
 
+  Future<void>? _inFlight;
+
   /// Carrega a vitrine. Em um refresh, mantém os produtos atuais na tela
-  /// até a nova resposta chegar.
-  Future<void> load() async {
+  /// até a nova resposta chegar. Chamadas simultâneas (ex.: pré-carga da
+  /// splash + abertura da home) compartilham a mesma requisição.
+  Future<void> load() =>
+      _inFlight ??= _load().whenComplete(() => _inFlight = null);
+
+  Future<void> _load() async {
     if (_state is! HomeLoaded) _setState(const HomeLoading());
 
     try {

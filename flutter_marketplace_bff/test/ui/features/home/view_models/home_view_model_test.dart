@@ -64,6 +64,15 @@ void main() {
       expect(repository.calls, 2);
     });
 
+    test('chamadas simultâneas compartilham a mesma requisição', () async {
+      await Future.wait([viewModel.load(), viewModel.load()]);
+
+      expect(repository.calls, 1);
+
+      await viewModel.load();
+      expect(repository.calls, 2);
+    });
+
     test('nova tentativa após falha volta a mostrar carregamento', () async {
       repository.onGetHomeProducts = () async =>
           throw const BffException(message: 'fora do ar');

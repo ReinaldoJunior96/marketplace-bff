@@ -29,7 +29,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _viewModel.load();
+    // A splash já pode ter carregado (ou estar carregando) a vitrine.
+    if (_viewModel.state is HomeLoading) _viewModel.load();
   }
 
   @override
