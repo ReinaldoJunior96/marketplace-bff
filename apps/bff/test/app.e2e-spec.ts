@@ -26,6 +26,7 @@ describe('AppController (e2e)', () => {
     createdAt: '2026-10-02T12:00:00.000Z',
   };
   const createOrder = vi.fn().mockResolvedValue(order);
+  const findAllOrders = vi.fn().mockResolvedValue([order]);
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
@@ -37,7 +38,7 @@ describe('AppController (e2e)', () => {
         findById: vi.fn().mockResolvedValue(product),
       })
       .overrideProvider(OrdersGateway)
-      .useValue({ create: createOrder })
+      .useValue({ create: createOrder, findAll: findAllOrders })
       .compile();
 
     app = moduleFixture.createNestApplication<NestFastifyApplication>(
@@ -131,6 +132,35 @@ describe('AppController (e2e)', () => {
       expect(createOrder).toHaveBeenCalledWith(payload, 'front-test-001');
     },
   );
+
+  it('returns the complete order view for web', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/web/orders',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual([order]);
+  });
+
+  it('returns the reduced order view for mobile', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/mobile/orders',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual([
+      {
+        id: order.id,
+        status: order.status,
+        itemsCount: order.items.length,
+        createdAt: order.createdAt,
+      },
+    ]);
+    expect(response.json()[0]).not.toHaveProperty('customerId');
+    expect(response.json()[0]).not.toHaveProperty('items');
+  });
 
   it('generates and returns a correlation ID when one is not provided', async () => {
     const response = await app.inject({

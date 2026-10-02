@@ -31,7 +31,7 @@ docker run --rm -p 3000:3000 marketplace-bff
 
 ## Order Service
 
-Pedidos pertencem ao Order Service, não ao BFF. O serviço expõe `POST /orders`, `GET /orders/:id` e `GET /health` na porta 3001.
+Pedidos pertencem ao Order Service, não ao BFF. O serviço expõe `POST /orders`, `GET /orders`, `GET /orders/:id` e `GET /health` na porta 3001.
 
 Web e Mobile não acessam o Order Service diretamente. Os clientes criam pedidos pelos contratos `POST /api/web/orders` e `POST /api/mobile/orders` do BFF. O BFF valida e adapta o payload, quando necessário, e delega a criação ao Order Service usando `ORDER_SERVICE_URL=http://order-service:3001` dentro da rede Docker. A regra de criação permanece somente no Order Service.
 
@@ -46,6 +46,8 @@ Order Service
 ```
 
 O header opcional `x-correlation-id` é propagado pelo BFF. Quando ele não é enviado, o BFF gera um UUID. Nos dois casos, o identificador usado no fluxo é devolvido no header `x-correlation-id` da resposta.
+
+Para a tela "Meus pedidos", Web e Mobile consultam respectivamente `GET /api/web/orders` e `GET /api/mobile/orders`. A Web recebe os pedidos completos; o Mobile recebe apenas `id`, `status`, `itemsCount` e `createdAt`.
 
 O armazenamento é mantido em memória para preservar o foco atual na arquitetura de comunicação. Os pedidos são perdidos quando o container reinicia. A persistência será tratada separadamente quando fizer sentido para o objetivo do projeto.
 

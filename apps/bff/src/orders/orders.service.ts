@@ -13,6 +13,10 @@ export interface CreateOrderResult {
 export class OrdersService {
   constructor(private readonly ordersGateway: OrdersGateway) {}
 
+  findAll(): Promise<Order[]> {
+    return this.ordersGateway.findAll();
+  }
+
   async create(
     input: CreateOrderDto,
     requestedCorrelationId?: string,

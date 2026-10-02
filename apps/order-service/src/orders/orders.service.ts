@@ -56,6 +56,10 @@ export class OrdersService {
     return order;
   }
 
+  findAll(): Order[] {
+    return Array.from(this.orders.values());
+  }
+
   findById(id: string): Order {
     const order = this.orders.get(id);
 

@@ -1,8 +1,9 @@
-import { Body, Controller, Headers, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Post, Res } from '@nestjs/common';
 import { CreateOrderPipe } from '../../orders/create-order.pipe.js';
 import type { CreateOrderDto } from '../../orders/dto/create-order.dto.js';
 import type { Order } from '../../orders/order.js';
 import { OrdersService } from '../../orders/orders.service.js';
+import { WebOrderDto } from './dto/web-order.dto.js';
 
 interface ResponseHeaderWriter {
   header(name: string, value: string): unknown;
@@ -11,6 +12,12 @@ interface ResponseHeaderWriter {
 @Controller('api/web/orders')
 export class WebOrdersController {
   constructor(private readonly ordersService: OrdersService) {}
+
+  @Get()
+  async findAll(): Promise<WebOrderDto[]> {
+    const orders = await this.ordersService.findAll();
+    return orders.map((order) => new WebOrderDto(order));
+  }
 
   @Post()
   async create(

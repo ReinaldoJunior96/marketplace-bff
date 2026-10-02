@@ -11,6 +11,27 @@ describe('OrdersGateway', () => {
     delete process.env.ORDER_SERVICE_URL;
   });
 
+  it('lists orders from the Order Service', async () => {
+    const orders = [
+      {
+        id: 'order-123',
+        customerId: 'customer-123',
+        items: [{ productId: 'product-001', quantity: 1 }],
+        status: 'CREATED',
+        createdAt: '2026-10-02T12:00:00.000Z',
+      },
+    ];
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify(orders), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const gateway = new OrdersGateway();
+
+    await expect(gateway.findAll()).resolves.toEqual(orders);
+    expect(fetchMock).toHaveBeenCalledWith('http://order-service:3001/orders');
+  });
+
   it('creates an order and propagates the correlation ID', async () => {
     const input = {
       customerId: 'customer-123',

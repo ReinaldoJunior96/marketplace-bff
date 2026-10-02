@@ -25,6 +25,7 @@ describe('OrdersService', () => {
     expect(created.status).toBe('CREATED');
     expect(created.createdAt).toBeDefined();
     expect(retrieved).toEqual(created);
+    expect(service.findAll()).toEqual([created]);
     expect(publishOrderCreated).toHaveBeenCalledWith({
       eventId: expect.any(String),
       eventType: 'order.created',

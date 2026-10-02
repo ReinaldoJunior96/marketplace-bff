@@ -19,6 +19,11 @@ export class OrdersController {
     );
   }
 
+  @Get()
+  findAll(): Order[] {
+    return this.ordersService.findAll();
+  }
+
   @Get(':id')
   findById(@Param('id') id: string): Order {
     return this.ordersService.findById(id);

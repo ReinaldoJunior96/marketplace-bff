@@ -65,6 +65,14 @@ describe('Order Service (e2e)', () => {
 
     expect(getResponse.statusCode).toBe(200);
     expect(getResponse.json()).toEqual(created);
+
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/orders',
+    });
+
+    expect(listResponse.statusCode).toBe(200);
+    expect(listResponse.json()).toEqual([created]);
   });
 
   it('generates a correlation ID when the header is absent', async () => {

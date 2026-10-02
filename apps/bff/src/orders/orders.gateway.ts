@@ -16,18 +16,27 @@ export class OrdersGateway {
     this.baseUrl = url.replace(/\/$/, '');
   }
 
+  findAll(): Promise<Order[]> {
+    return this.request<Order[]>('/orders');
+  }
+
   async create(input: CreateOrderDto, correlationId: string): Promise<Order> {
+    return this.request<Order>('/orders', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-correlation-id': correlationId,
+      },
+      body: JSON.stringify(input),
+    });
+  }
+
+  private async request<T>(path: string, options?: RequestInit): Promise<T> {
     let response: Response;
 
     try {
-      response = await fetch(`${this.baseUrl}/orders`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-correlation-id': correlationId,
-        },
-        body: JSON.stringify(input),
-      });
+      const url = `${this.baseUrl}${path}`;
+      response = options ? await fetch(url, options) : await fetch(url);
     } catch {
       throw new BadGatewayException('Order Service is unavailable');
     }
@@ -36,6 +45,6 @@ export class OrdersGateway {
       throw new BadGatewayException('Order Service request failed');
     }
 
-    return (await response.json()) as Order;
+    return (await response.json()) as T;
   }
 }
