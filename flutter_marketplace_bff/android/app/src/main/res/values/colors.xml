@@ -2,4 +2,6 @@
 <resources>
     <!-- Mesmo creme do tema Flutter (AppColors.cream) para não piscar branco. -->
     <color name="splash_background">#F8F3EC</color>
+    <!-- Fundo do ícone adaptativo (gerado pelo flutter_launcher_icons). -->
+    <color name="ic_launcher_background">#A0533A</color>
 </resources>

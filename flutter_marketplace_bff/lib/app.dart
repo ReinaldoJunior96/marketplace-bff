@@ -29,7 +29,7 @@ class _MarketplaceAppState extends State<MarketplaceApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Terra',
+      title: 'TerraShop',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       home: SplashScreen(

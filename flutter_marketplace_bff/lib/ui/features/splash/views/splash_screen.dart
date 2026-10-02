@@ -31,7 +31,7 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   static const _introDuration = Duration(milliseconds: 1900);
-  static const _wordmark = 'terra';
+  static const _wordmark = 'TerraShop';
   static const _blobs = [
     _Blob(offset: Offset(-120, -170), size: 130, color: AppColors.peach),
     _Blob(offset: Offset(125, -110), size: 90, color: AppColors.sage),
@@ -100,7 +100,7 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       backgroundColor: AppColors.cream,
       body: Semantics(
-        label: 'terra, carregando',
+        label: 'TerraShop, carregando',
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, _) => Stack(
@@ -229,7 +229,7 @@ class _SplashScreenState extends State<SplashScreen>
             _buildLetter(
               letter,
               style,
-              _phase(0.38 + index * 0.07, 0.68 + index * 0.07),
+              _phase(0.36 + index * 0.035, 0.66 + index * 0.035),
             ),
         ],
       ),

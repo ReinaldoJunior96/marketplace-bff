@@ -215,7 +215,7 @@ class _Header extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('terra', style: textTheme.titleLarge),
+                  Text('TerraShop', style: textTheme.titleLarge),
                   Text(
                     'Achados com afeto',
                     style: textTheme.bodySmall?.copyWith(
