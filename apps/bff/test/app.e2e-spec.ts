@@ -61,6 +61,34 @@ describe('AppController (e2e)', () => {
     expect(response.body).toBe('Hello World!');
   });
 
+  it('reports liveness and downstream readiness', async () => {
+    const previousCatalogUrl = process.env.CATALOG_SERVICE_URL;
+    const previousOrderUrl = process.env.ORDER_SERVICE_URL;
+    process.env.CATALOG_SERVICE_URL = 'http://catalog-service:3003';
+    process.env.ORDER_SERVICE_URL = 'http://order-service:3001';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response('{"status":"ready"}')),
+    );
+
+    try {
+      const live = await app.inject({ method: 'GET', url: '/health/live' });
+      const ready = await app.inject({ method: 'GET', url: '/health/ready' });
+
+      expect(live.statusCode).toBe(200);
+      expect(live.json()).toEqual({ status: 'live' });
+      expect(ready.statusCode).toBe(200);
+      expect(ready.json()).toEqual({
+        status: 'ready',
+        dependencies: { catalog: 'up', order: 'up' },
+      });
+    } finally {
+      vi.unstubAllGlobals();
+      restoreEnvironment('CATALOG_SERVICE_URL', previousCatalogUrl);
+      restoreEnvironment('ORDER_SERVICE_URL', previousOrderUrl);
+    }
+  });
+
   it('lists products through the catalog integration', async () => {
     const response = await app.inject({
       method: 'GET',
@@ -226,3 +254,8 @@ describe('AppController (e2e)', () => {
     expect(createOrder).not.toHaveBeenCalled();
   });
 });
+
+function restoreEnvironment(name: string, value: string | undefined): void {
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
+}

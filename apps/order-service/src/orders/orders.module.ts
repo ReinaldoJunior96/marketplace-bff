@@ -7,5 +7,6 @@ import { OrdersService } from './orders.service.js';
   imports: [MessagingModule],
   controllers: [OrdersController],
   providers: [OrdersService],
+  exports: [MessagingModule],
 })
 export class OrdersModule {}

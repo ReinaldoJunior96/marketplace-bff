@@ -15,7 +15,7 @@ describe('Audit Service (e2e)', () => {
       imports: [AppModule],
     })
       .overrideProvider(RabbitMqConsumer)
-      .useValue({})
+      .useValue({ isReady: () => true })
       .compile();
 
     app = moduleFixture.createNestApplication<NestFastifyApplication>(
@@ -42,6 +42,19 @@ describe('Audit Service (e2e)', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ status: 'ok' });
+  });
+
+  it('reports liveness and RabbitMQ readiness', async () => {
+    const live = await app.inject({ method: 'GET', url: '/health/live' });
+    const ready = await app.inject({ method: 'GET', url: '/health/ready' });
+
+    expect(live.statusCode).toBe(200);
+    expect(live.json()).toEqual({ status: 'live' });
+    expect(ready.statusCode).toBe(200);
+    expect(ready.json()).toEqual({
+      status: 'ready',
+      dependencies: { rabbitmq: 'up' },
+    });
   });
 
   it('returns all audit events', async () => {

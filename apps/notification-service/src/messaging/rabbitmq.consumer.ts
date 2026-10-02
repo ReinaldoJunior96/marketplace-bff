@@ -37,6 +37,7 @@ export class RabbitMqConsumer implements OnModuleInit, OnModuleDestroy {
     'EVENT_RETRY_DELAY_MS',
     1_000,
   );
+  private ready = false;
 
   constructor(
     private readonly notificationService: NotificationService,
@@ -52,6 +53,12 @@ export class RabbitMqConsumer implements OnModuleInit, OnModuleDestroy {
 
     this.connection = await amqp.connect(url, {
       clientProperties: { connection_name: 'notification-service' },
+    });
+    this.connection.on('close', () => {
+      this.ready = false;
+    });
+    this.connection.on('error', () => {
+      this.ready = false;
     });
     this.channel = await this.connection.createConfirmChannel();
 
@@ -87,11 +94,17 @@ export class RabbitMqConsumer implements OnModuleInit, OnModuleDestroy {
       },
       { noAck: false },
     );
+    this.ready = true;
   }
 
   async onModuleDestroy(): Promise<void> {
+    this.ready = false;
     await this.channel?.close();
     await this.connection?.close();
+  }
+
+  isReady(): boolean {
+    return this.ready;
   }
 
   async handleMessage(

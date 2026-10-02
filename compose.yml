@@ -17,9 +17,21 @@ services:
       - "3000:3000"
     depends_on:
       catalog-service:
-        condition: service_started
+        condition: service_healthy
       order-service:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     networks:
       - marketplace-network
 
@@ -36,6 +48,18 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3001/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     networks:
       - marketplace-network
 
@@ -45,6 +69,7 @@ services:
       dockerfile: apps/notification-service/Dockerfile
     environment:
       NODE_ENV: development
+      PORT: 3004
       RABBITMQ_URL: ${RABBITMQ_URL}
       EVENT_RETRY_MAX_ATTEMPTS: ${EVENT_RETRY_MAX_ATTEMPTS:-2}
       EVENT_RETRY_DELAY_MS: ${EVENT_RETRY_DELAY_MS:-1000}
@@ -52,6 +77,18 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3004/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     networks:
       - marketplace-network
 
@@ -71,6 +108,18 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3002/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     networks:
       - marketplace-network
 
@@ -84,6 +133,18 @@ services:
       DEV_RESPONSE_DELAY_MS: ${CATALOG_DEV_RESPONSE_DELAY_MS:-0}
     ports:
       - "3003:3003"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3003/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     networks:
       - marketplace-network
 

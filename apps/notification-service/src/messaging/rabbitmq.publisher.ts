@@ -16,6 +16,7 @@ export class RabbitMqPublisher implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMqPublisher.name);
   private connection?: ChannelModel;
   private channel?: ConfirmChannel;
+  private ready = false;
 
   async onModuleInit(): Promise<void> {
     const url = process.env.RABBITMQ_URL;
@@ -27,15 +28,27 @@ export class RabbitMqPublisher implements OnModuleInit, OnModuleDestroy {
     this.connection = await amqp.connect(url, {
       clientProperties: { connection_name: 'notification-service-publisher' },
     });
+    this.connection.on('close', () => {
+      this.ready = false;
+    });
+    this.connection.on('error', () => {
+      this.ready = false;
+    });
     this.channel = await this.connection.createConfirmChannel();
     await this.channel.assertExchange(MARKETPLACE_EVENTS_EXCHANGE, 'topic', {
       durable: true,
     });
+    this.ready = true;
   }
 
   async onModuleDestroy(): Promise<void> {
+    this.ready = false;
     await this.channel?.close();
     await this.connection?.close();
+  }
+
+  isReady(): boolean {
+    return this.ready;
   }
 
   async publishNotificationSent(event: NotificationSentEvent): Promise<void> {

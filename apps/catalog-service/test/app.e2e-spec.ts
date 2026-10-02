@@ -31,6 +31,16 @@ describe('Catalog Service (e2e)', () => {
     expect(response.json()).toEqual({ status: 'ok' });
   });
 
+  it('reports liveness and readiness without external dependencies', async () => {
+    const live = await app.inject({ method: 'GET', url: '/health/live' });
+    const ready = await app.inject({ method: 'GET', url: '/health/ready' });
+
+    expect(live.statusCode).toBe(200);
+    expect(live.json()).toEqual({ status: 'live' });
+    expect(ready.statusCode).toBe(200);
+    expect(ready.json()).toEqual({ status: 'ready', dependencies: {} });
+  });
+
   it('lists the catalog', async () => {
     const response = await app.inject({ method: 'GET', url: '/products' });
 

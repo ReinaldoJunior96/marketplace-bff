@@ -22,6 +22,8 @@ docker compose up --build
 
 O endpoint inicial estará disponível em `http://localhost:3000`.
 
+Serviços HTTP expõem `/health/live` para indicar que o processo responde e `/health/ready` para indicar que suas dependências obrigatórias estão disponíveis. Order, Notification e Audit consideram RabbitMQ; o BFF verifica Catalog e Order; o Catalog não possui dependência externa. Falha de readiness retorna HTTP 503 e não implica falha de liveness.
+
 Para executar sem Compose, construa e inicie o container manualmente:
 
 ```sh

@@ -11,4 +11,6 @@ COPY apps/notification-service ./apps/notification-service
 
 WORKDIR /workspace/apps/notification-service
 
+EXPOSE 3004
+
 CMD ["npm", "run", "start:dev"]
