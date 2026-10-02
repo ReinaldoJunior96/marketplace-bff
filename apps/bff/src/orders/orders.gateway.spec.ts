@@ -8,7 +8,11 @@ describe('OrdersGateway', () => {
   const createGateway = () =>
     new OrdersGateway(
       new DownstreamHttpClient(
-        { timeoutMs: 2_000 } as DownstreamConfigService,
+        {
+          timeoutMs: 2_000,
+          retryCount: 2,
+          retryBackoffMs: 0,
+        } as DownstreamConfigService,
         new CorrelationIdService(),
       ),
     );
@@ -79,7 +83,8 @@ describe('OrdersGateway', () => {
   });
 
   it('maps a connection failure to a controlled service error', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    const fetchMock = vi.fn().mockRejectedValue(new Error('offline'));
+    vi.stubGlobal('fetch', fetchMock);
 
     const gateway = createGateway();
 
@@ -92,5 +97,6 @@ describe('OrdersGateway', () => {
         'front-test-001',
       ),
     ).rejects.toBeInstanceOf(DownstreamServiceUnavailableException);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -38,7 +38,9 @@ export class OrdersGateway {
 
     try {
       const url = `${this.baseUrl}${path}`;
-      response = await this.http.request('order-service', url, options);
+      response = await this.http.request('order-service', url, options, {
+        retryable: options?.method !== 'POST',
+      });
     } catch (error) {
       if (error instanceof DownstreamServiceUnavailableException) throw error;
       throw new DownstreamServiceUnavailableException('order-service');

@@ -32,6 +32,8 @@ export class CatalogGateway {
       response = await this.http.request(
         'catalog-service',
         `${this.baseUrl}${path}`,
+        undefined,
+        { retryable: true },
       );
     } catch (error) {
       if (error instanceof DownstreamServiceUnavailableException) throw error;

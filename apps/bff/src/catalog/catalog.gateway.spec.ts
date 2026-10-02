@@ -9,7 +9,11 @@ describe('CatalogGateway', () => {
   const createGateway = () =>
     new CatalogGateway(
       new DownstreamHttpClient(
-        { timeoutMs: 2_000 } as DownstreamConfigService,
+        {
+          timeoutMs: 2_000,
+          retryCount: 2,
+          retryBackoffMs: 0,
+        } as DownstreamConfigService,
         new CorrelationIdService(),
       ),
     );
