@@ -8,6 +8,7 @@ services:
       PORT: 3000
       CATALOG_SERVICE_URL: ${CATALOG_SERVICE_URL:-http://catalog-service:3003}
       ORDER_SERVICE_URL: ${ORDER_SERVICE_URL:-http://order-service:3001}
+      DOWNSTREAM_TIMEOUT_MS: ${DOWNSTREAM_TIMEOUT_MS:-2000}
     ports:
       - "3000:3000"
     depends_on:
@@ -70,6 +71,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3003
+      DEV_RESPONSE_DELAY_MS: ${CATALOG_DEV_RESPONSE_DELAY_MS:-0}
     ports:
       - "3003:3003"
     networks:

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { DownstreamHttpClient } from '../common/downstream-http.client.js';
 import { DownstreamServiceUnavailableException } from '../common/downstream-service.exception.js';
 import type { CreateOrderDto } from './dto/create-order.dto.js';
 import type { Order } from './order.js';
@@ -7,7 +8,7 @@ import type { Order } from './order.js';
 export class OrdersGateway {
   private readonly baseUrl: string;
 
-  constructor() {
+  constructor(private readonly http: DownstreamHttpClient) {
     const url = process.env.ORDER_SERVICE_URL;
 
     if (!url) {
@@ -37,13 +38,14 @@ export class OrdersGateway {
 
     try {
       const url = `${this.baseUrl}${path}`;
-      response = options ? await fetch(url, options) : await fetch(url);
-    } catch {
-      throw new DownstreamServiceUnavailableException('Order');
+      response = await this.http.request('order-service', url, options);
+    } catch (error) {
+      if (error instanceof DownstreamServiceUnavailableException) throw error;
+      throw new DownstreamServiceUnavailableException('order-service');
     }
 
     if (!response.ok) {
-      throw new DownstreamServiceUnavailableException('Order');
+      throw new DownstreamServiceUnavailableException('order-service');
     }
 
     return (await response.json()) as T;

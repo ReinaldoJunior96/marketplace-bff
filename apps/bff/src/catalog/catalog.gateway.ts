@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DownstreamServiceUnavailableException } from '../common/downstream-service.exception.js';
+import { DownstreamHttpClient } from '../common/downstream-http.client.js';
 import type { Product } from './product.js';
 
 @Injectable()
 export class CatalogGateway {
   private readonly baseUrl: string;
 
-  constructor() {
+  constructor(private readonly http: DownstreamHttpClient) {
     const url = process.env.CATALOG_SERVICE_URL;
 
     if (!url) {
@@ -28,9 +29,13 @@ export class CatalogGateway {
     let response: Response;
 
     try {
-      response = await fetch(`${this.baseUrl}${path}`);
-    } catch {
-      throw new DownstreamServiceUnavailableException('Catalog');
+      response = await this.http.request(
+        'catalog-service',
+        `${this.baseUrl}${path}`,
+      );
+    } catch (error) {
+      if (error instanceof DownstreamServiceUnavailableException) throw error;
+      throw new DownstreamServiceUnavailableException('catalog-service');
     }
 
     if (response.status === 404) {
@@ -38,7 +43,7 @@ export class CatalogGateway {
     }
 
     if (!response.ok) {
-      throw new DownstreamServiceUnavailableException('Catalog');
+      throw new DownstreamServiceUnavailableException('catalog-service');
     }
 
     return (await response.json()) as T;

@@ -49,6 +49,8 @@ O header opcional `x-correlation-id` é propagado pelo BFF. Quando ele não é e
 
 Erros HTTP do BFF seguem um contrato único com `statusCode`, `error`, `message` e `correlationId`. Falhas de serviços internos são convertidas em respostas públicas controladas, sem stack trace, hostname Docker ou detalhes de conexão. O filtro global do NestJS centraliza essa convenção e mantém os gateways focados na integração.
 
+Chamadas HTTP do BFF para Catalog e Order Service usam o timeout central `DOWNSTREAM_TIMEOUT_MS` (padrão: 2000 ms). Um timeout baixo demais pode causar falhas falsas; um valor alto demais aumenta a latência e mantém recursos ocupados. Em desenvolvimento, `CATALOG_DEV_RESPONSE_DELAY_MS` permite atrasar respostas do catálogo para testar esse comportamento e fica desativado por padrão.
+
 Para a tela "Meus pedidos", Web e Mobile consultam respectivamente `GET /api/web/orders` e `GET /api/mobile/orders`. A Web recebe os pedidos completos; o Mobile recebe apenas `id`, `status`, `itemsCount` e `createdAt`.
 
 O armazenamento é mantido em memória para preservar o foco atual na arquitetura de comunicação. Os pedidos são perdidos quando o container reinicia. A persistência será tratada separadamente quando fizer sentido para o objetivo do projeto.

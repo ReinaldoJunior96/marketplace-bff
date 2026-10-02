@@ -1,8 +1,19 @@
 import { NotFoundException } from '@nestjs/common';
+import { CorrelationIdService } from '../common/correlation-id.service.js';
+import type { DownstreamConfigService } from '../common/downstream-config.service.js';
+import { DownstreamHttpClient } from '../common/downstream-http.client.js';
 import { DownstreamServiceUnavailableException } from '../common/downstream-service.exception.js';
 import { CatalogGateway } from './catalog.gateway.js';
 
 describe('CatalogGateway', () => {
+  const createGateway = () =>
+    new CatalogGateway(
+      new DownstreamHttpClient(
+        { timeoutMs: 2_000 } as DownstreamConfigService,
+        new CorrelationIdService(),
+      ),
+    );
+
   beforeEach(() => {
     process.env.CATALOG_SERVICE_URL = 'http://catalog-service:3003';
   });
@@ -21,11 +32,12 @@ describe('CatalogGateway', () => {
       );
     vi.stubGlobal('fetch', fetchMock);
 
-    const gateway = new CatalogGateway();
+    const gateway = createGateway();
 
     await expect(gateway.findAll()).resolves.toEqual(products);
     expect(fetchMock).toHaveBeenCalledWith(
       'http://catalog-service:3003/products',
+      expect.objectContaining({ signal: expect.any(Object) }),
     );
   });
 
@@ -35,7 +47,7 @@ describe('CatalogGateway', () => {
       vi.fn().mockResolvedValue(new Response(null, { status: 404 })),
     );
 
-    const gateway = new CatalogGateway();
+    const gateway = createGateway();
 
     await expect(gateway.findById('missing')).rejects.toBeInstanceOf(
       NotFoundException,
@@ -45,7 +57,7 @@ describe('CatalogGateway', () => {
   it('maps a connection failure to a controlled service error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
 
-    const gateway = new CatalogGateway();
+    const gateway = createGateway();
 
     await expect(gateway.findAll()).rejects.toBeInstanceOf(
       DownstreamServiceUnavailableException,

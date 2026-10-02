@@ -7,18 +7,17 @@ import { APP_FILTER } from '@nestjs/core';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { CatalogModule } from './catalog/catalog.module.js';
+import { CommonModule } from './common/common.module.js';
 import { CorrelationIdMiddleware } from './common/correlation-id.middleware.js';
-import { CorrelationIdService } from './common/correlation-id.service.js';
 import { HttpExceptionFilter } from './common/http-exception.filter.js';
 import { MobileModule } from './modules/mobile/mobile.module.js';
 import { WebModule } from './modules/web/web.module.js';
 
 @Module({
-  imports: [CatalogModule, WebModule, MobileModule],
+  imports: [CommonModule, CatalogModule, WebModule, MobileModule],
   controllers: [AppController],
   providers: [
     AppService,
-    CorrelationIdService,
     CorrelationIdMiddleware,
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
   ],

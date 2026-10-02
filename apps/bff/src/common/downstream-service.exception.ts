@@ -1,9 +1,13 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 
-export type DownstreamServiceName = 'Catalog' | 'Order';
+export type DownstreamServiceName = 'catalog-service' | 'order-service';
 
 export class DownstreamServiceUnavailableException extends HttpException {
   constructor(service: DownstreamServiceName) {
-    super(`${service} service is unavailable`, HttpStatus.SERVICE_UNAVAILABLE);
+    const publicName = service === 'catalog-service' ? 'Catalog' : 'Order';
+    super(
+      `${publicName} service is unavailable`,
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
   }
 }

@@ -7,12 +7,23 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
-  findAll(): Product[] {
+  async findAll(): Promise<Product[]> {
+    await simulateDevelopmentDelay();
     return this.productsService.findAll();
   }
 
   @Get(':id')
-  findById(@Param('id') id: string): Product {
+  async findById(@Param('id') id: string): Promise<Product> {
+    await simulateDevelopmentDelay();
     return this.productsService.findById(id);
   }
+}
+
+async function simulateDevelopmentDelay(): Promise<void> {
+  if (process.env.NODE_ENV !== 'development') return;
+
+  const delayMs = Number(process.env.DEV_RESPONSE_DELAY_MS ?? 0);
+  if (!Number.isFinite(delayMs) || delayMs <= 0) return;
+
+  await new Promise((resolve) => setTimeout(resolve, delayMs));
 }

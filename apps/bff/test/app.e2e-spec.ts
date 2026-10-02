@@ -93,7 +93,7 @@ describe('AppController (e2e)', () => {
 
   it('standardizes downstream failures without leaking details', async () => {
     findAllProducts.mockRejectedValueOnce(
-      new DownstreamServiceUnavailableException('Catalog'),
+      new DownstreamServiceUnavailableException('catalog-service'),
     );
 
     const response = await app.inject({

@@ -1,7 +1,18 @@
+import { CorrelationIdService } from '../common/correlation-id.service.js';
+import type { DownstreamConfigService } from '../common/downstream-config.service.js';
+import { DownstreamHttpClient } from '../common/downstream-http.client.js';
 import { DownstreamServiceUnavailableException } from '../common/downstream-service.exception.js';
 import { OrdersGateway } from './orders.gateway.js';
 
 describe('OrdersGateway', () => {
+  const createGateway = () =>
+    new OrdersGateway(
+      new DownstreamHttpClient(
+        { timeoutMs: 2_000 } as DownstreamConfigService,
+        new CorrelationIdService(),
+      ),
+    );
+
   beforeEach(() => {
     process.env.ORDER_SERVICE_URL = 'http://order-service:3001/';
   });
@@ -26,10 +37,13 @@ describe('OrdersGateway', () => {
       .mockResolvedValue(new Response(JSON.stringify(orders), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
-    const gateway = new OrdersGateway();
+    const gateway = createGateway();
 
     await expect(gateway.findAll()).resolves.toEqual(orders);
-    expect(fetchMock).toHaveBeenCalledWith('http://order-service:3001/orders');
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://order-service:3001/orders',
+      expect.objectContaining({ signal: expect.any(Object) }),
+    );
   });
 
   it('creates an order and propagates the correlation ID', async () => {
@@ -48,7 +62,7 @@ describe('OrdersGateway', () => {
       .mockResolvedValue(new Response(JSON.stringify(order), { status: 201 }));
     vi.stubGlobal('fetch', fetchMock);
 
-    const gateway = new OrdersGateway();
+    const gateway = createGateway();
 
     await expect(gateway.create(input, 'front-test-001')).resolves.toEqual(
       order,
@@ -60,13 +74,14 @@ describe('OrdersGateway', () => {
         'x-correlation-id': 'front-test-001',
       },
       body: JSON.stringify(input),
+      signal: expect.any(Object),
     });
   });
 
   it('maps a connection failure to a controlled service error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
 
-    const gateway = new OrdersGateway();
+    const gateway = createGateway();
 
     await expect(
       gateway.create(
